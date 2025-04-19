@@ -3,7 +3,7 @@ module snake
 go 1.24.0
 
 require (
-	github.com/CrazyThursdayV50/pkgo v0.1.2
+	github.com/CrazyThursdayV50/pkgo v0.1.8
 	github.com/binance/binance-connector-go v0.8.0
 	github.com/shopspring/decimal v1.4.0
 	gorm.io/gorm v1.25.12
