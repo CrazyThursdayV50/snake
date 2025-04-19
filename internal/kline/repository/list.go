@@ -16,7 +16,7 @@ func (r *Repository) List(ctx context.Context, interval interval.Interval, from,
 			models.KlineTable(interval),
 			model.ColumnOpenTs().Between(from, to),
 		).
-		Order(clause.OrderByColumn{Column: clause.Column{Name: model.ColumnOpenTs().String()}})
+		Order(clause.OrderByColumn{Column: clause.Column{Name: model.ColumnOpenTs().String()}}).Find(&klines)
 	if db.Error != nil {
 		return nil, db.Error
 	}

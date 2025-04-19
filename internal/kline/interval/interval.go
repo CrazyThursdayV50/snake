@@ -1,6 +1,9 @@
 package interval
 
-import "time"
+import (
+	"errors"
+	"time"
+)
 
 type Interval string
 
@@ -116,3 +119,13 @@ func (i Interval) Duration() time.Duration {
 
 func (i Interval) String() string { return string(i) }
 func (i Interval) DB() string     { return dbNameMap[i] }
+
+// Parse 将字符串解析为 Interval 类型
+func Parse(s string) (Interval, error) {
+	for _, i := range all {
+		if string(i) == s {
+			return i, nil
+		}
+	}
+	return Interval1m, errors.New("无效的时间间隔")
+}

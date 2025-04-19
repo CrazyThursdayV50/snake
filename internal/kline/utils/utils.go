@@ -1,12 +1,12 @@
 package utils
 
 import (
+	"snake/internal/kline"
 	"snake/internal/kline/interval"
 	"snake/internal/kline/storage/mysql/models"
 	"time"
 
-	"github.com/CrazyThursdayV50/pkgo/builtin/collector"
-	"github.com/CrazyThursdayV50/pkgo/builtin/slice"
+	"github.com/shopspring/decimal"
 )
 
 func GetNextTime(currentTime uint64, interval interval.Interval) uint64 {
@@ -41,15 +41,86 @@ func GenNextTimeToN(currentTime uint64, to uint64, interval interval.Interval, n
 	return sli
 }
 
-func FillKlines(klines []*models.Kline, interval interval.Interval, to int64) []*models.Kline {
+func FillKlines(klines []*kline.Kline, interval interval.Interval, to int64) []*kline.Kline {
+	if len(klines) == 0 {
+		return klines
+	}
+
+	first := klines[0].S
+	n := (to-first)/interval.Duration().Milliseconds() + 1
+	tsSli := GenNextTimeToN(uint64(first), uint64(to), interval, int(n))
+
+	// 创建时间到 Kline 的映射
+	klineMap := make(map[int64]*kline.Kline)
+	for _, kline := range klines {
+		klineMap[kline.S] = kline
+	}
+
+	// 填充缺失的 Kline
+	var result []*kline.Kline
+	var lastKline *kline.Kline
+
+	for _, ts := range tsSli {
+		if k, exists := klineMap[ts]; exists {
+			result = append(result, k)
+			lastKline = k
+		} else if lastKline != nil {
+			// 使用上一个 Kline 的收盘价创建新的 Kline
+			newKline := &kline.Kline{
+				O: lastKline.C,                                 // 开盘价 = 上一个 Kline 的收盘价
+				C: lastKline.C,                                 // 收盘价 = 上一个 Kline 的收盘价
+				H: lastKline.C,                                 // 最高价 = 上一个 Kline 的收盘价
+				L: lastKline.C,                                 // 最低价 = 上一个 Kline 的收盘价
+				V: decimal.Zero,                                // 成交量 = 0
+				A: decimal.Zero,                                // 成交额 = 0
+				S: ts,                                          // 开盘时间
+				E: ts + interval.Duration().Milliseconds() - 1, // 收盘时间
+			}
+			result = append(result, newKline)
+		}
+	}
+
+	return result
+}
+
+func FillKlinesDB(klines []*models.Kline, interval interval.Interval, to int64) []*models.Kline {
+	if len(klines) == 0 {
+		return klines
+	}
+
 	first := klines[0].OpenTs
 	n := (to-first)/interval.Duration().Milliseconds() + 1
 	tsSli := GenNextTimeToN(uint64(first), uint64(to), interval, int(n))
-	klineGroup := collector.Map(klines, func(_ int, v *models.Kline) (bool, int64, *models.Kline) {
-		return true, v.OpenTs, v
-	})
 
-	slice.From(tsSli...).Iter(func(k int, v int64) (bool, error) {
+	// 创建时间到 Kline 的映射
+	klineMap := make(map[int64]*models.Kline)
+	for _, kline := range klines {
+		klineMap[kline.OpenTs] = kline
+	}
 
-	})
+	// 填充缺失的 Kline
+	var result []*models.Kline
+	var lastKline *models.Kline
+
+	for _, ts := range tsSli {
+		if kline, exists := klineMap[ts]; exists {
+			result = append(result, kline)
+			lastKline = kline
+		} else if lastKline != nil {
+			// 使用上一个 Kline 的收盘价创建新的 Kline
+			newKline := &models.Kline{
+				Open:    lastKline.Close,                             // 开盘价 = 上一个 Kline 的收盘价
+				Close:   lastKline.Close,                             // 收盘价 = 上一个 Kline 的收盘价
+				High:    lastKline.Close,                             // 最高价 = 上一个 Kline 的收盘价
+				Low:     lastKline.Close,                             // 最低价 = 上一个 Kline 的收盘价
+				Volume:  "0",                                         // 成交量 = 0
+				Amount:  "0",                                         // 成交额 = 0
+				OpenTs:  ts,                                          // 开盘时间
+				CloseTs: ts + interval.Duration().Milliseconds() - 1, // 收盘时间
+			}
+			result = append(result, newKline)
+		}
+	}
+
+	return result
 }
