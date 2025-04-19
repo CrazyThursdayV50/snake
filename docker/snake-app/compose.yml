@@ -1,0 +1,18 @@
+networks:
+  default:
+    name: general
+    external: true
+
+services:
+  snake-app:
+    container_name: ${APP}
+    image: ${APP}:local
+    env_file: ${CONTAINER_ENV_FILE}
+    ports:
+      - 22446:22446
+    volumes:
+      - /Users/alex/projects/alex/snake:/app/config
+    networks:
+      default:
+        aliases:
+          - ${APP}

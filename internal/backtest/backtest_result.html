@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>回测结果图表</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <style>
+        #chart {
+            width: 100%;
+            height: 800px;
+        }
+    </style>
+</head>
+<body>
+    <div id="chart"></div>
+    <script>
+        var chartDom = document.getElementById('chart');
+        var myChart = echarts.init(chartDom);
+        var option;
+
+        option = {
+            title: {
+                text: '回测结果'
+            },
+            tooltip: {
+                trigger: 'axis',
+                axisPointer: {
+                    type: 'cross'
+                },
+                formatter: function(params) {
+                    var result = params[0].name + '<br/>';
+                    params.forEach(function(param) {
+                        if (param.seriesName === 'K线') {
+                            result += '开盘: ' + param.value[0] + '<br/>';
+                            result += '收盘: ' + param.value[1] + '<br/>';
+                            result += '最低: ' + param.value[2] + '<br/>';
+                            result += '最高: ' + param.value[3] + '<br/>';
+                        } else if (param.seriesName === '资产总值') {
+                            result += '资产总值: ' + param.value + '<br/>';
+                        } else if (param.seriesName === '盈亏') {
+                            result += '盈亏: ' + param.value + '%<br/>';
+                        } else if (param.seriesName === '回撤') {
+                            result += '回撤: ' + param.value + '%<br/>';
+                        } else if (param.seriesName === '买入点') {
+                            result += '买入点: ' + param.value[1] + '<br/>';
+                        } else if (param.seriesName === '卖出点') {
+                            result += '卖出点: ' + param.value[1] + '<br/>';
+                        }
+                    });
+                    return result;
+                }
+            },
+            legend: {
+                data: ['K线', '资产总值', '盈亏', '回撤', '买入点', '卖出点']
+            },
+            grid: {
+                left: '3%',
+                right: '4%',
+                bottom: '3%',
+                containLabel: true
+            },
+            xAxis: {
+                type: 'category',
+                data: ["2025-04-24 10:37:21","2025-04-24 10:38:21","2025-04-24 10:39:21","2025-04-24 10:40:21"]
+            },
+            yAxis: [
+                {
+                    type: 'value',
+                    scale: true,
+                    name: '价格',
+                    position: 'right'
+                },
+                {
+                    type: 'value',
+                    scale: true,
+                    name: '资产总值',
+                    position: 'left'
+                },
+                {
+                    type: 'value',
+                    scale: true,
+                    name: '盈亏/回撤(%)',
+                    position: 'left',
+                    offset: 80
+                }
+            ],
+            series: [
+                {
+                    name: 'K线',
+                    type: 'candlestick',
+                    data: [[100,101,99,102],[101,98,97,101],[98,95,94,98],[95,97,95,97]]
+                },
+                {
+                    name: '资产总值',
+                    type: 'line',
+                    yAxisIndex: 1,
+                    data: [1101,1098,1095,1097]
+                },
+                {
+                    name: '盈亏',
+                    type: 'line',
+                    yAxisIndex: 2,
+                    data: [1,-2,-5,-3]
+                },
+                {
+                    name: '回撤',
+                    type: 'line',
+                    yAxisIndex: 2,
+                    data: [0,0.2724795640327,0.5449591280654,0.36330608537693]
+                },
+                {
+                    name: '买入点',
+                    type: 'scatter',
+                    symbol: 'triangle',
+                    symbolSize: 10,
+                    itemStyle: {
+                        color: '#f00'
+                    },
+                    data: []
+                },
+                {
+                    name: '卖出点',
+                    type: 'scatter',
+                    symbol: 'triangle',
+                    symbolSize: 10,
+                    itemStyle: {
+                        color: '#0f0'
+                    },
+                    data: []
+                }
+            ]
+        };
+
+        myChart.setOption(option);
+    </script>
+</body>
+</html>

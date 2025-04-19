@@ -3,17 +3,18 @@ package workers
 import (
 	"context"
 	"fmt"
+	"snake/internal/kline"
 	"snake/internal/kline/acl"
 	"snake/internal/kline/interval"
 	"snake/internal/kline/storage/mysql/models"
 	"snake/internal/kline/utils"
-	"snake/internal/repository"
 	"snake/pkg/binance"
 
+	"github.com/CrazyThursdayV50/goex/binance/websocket-api/models/klines"
+	"github.com/CrazyThursdayV50/pkgo/builtin/collector"
 	"github.com/CrazyThursdayV50/pkgo/builtin/slice"
 	"github.com/CrazyThursdayV50/pkgo/log"
 	"github.com/CrazyThursdayV50/pkgo/worker"
-	binance_connector "github.com/binance/binance-connector-go"
 )
 
 const updateKlinesCount = 1000
@@ -43,16 +44,27 @@ func updateKlineFromStartTime(
 			return
 		}
 
-		resp, err := client.Restful.NewKlinesService().StartTime(nextStart).EndTime(endTime).Interval(interval.String()).Symbol(symbol).Limit(updateKlinesCount).Do(ctx)
+		resp, err := client.Restful.Klines().
+			StartTime(nextStart).
+			EndTime(endTime).
+			Interval(interval.String()).
+			Symbol(symbol).
+			Limit(updateKlinesCount).
+			Do(ctx)
 		if err != nil {
 			logger.Errorf("Failed to fetch klines: %v", err)
 			return
 		}
 
-		slice.From(resp...).Iter(func(k int, v *binance_connector.KlinesResponse) (bool, error) {
-			model := acl.ApiToDB(v)
-			trigger(model)
-			startTime = v.OpenTime
+		klines := collector.Slice(resp.Unwrap(), func(k int, v klines.Kline) (bool, *models.Kline) {
+			return true, acl.ApiToDB(v)
+		})
+
+		klines = utils.FillKlinesDB(klines, interval, int64(endTime))
+
+		slice.From(klines...).Iter(func(k int, v *models.Kline) (bool, error) {
+			trigger(v)
+			startTime = uint64(v.OpenTs)
 			return true, nil
 		})
 	}
@@ -75,7 +87,7 @@ func updateKlineToStartTime(
 			return
 		}
 
-		resp, err := client.Restful.NewKlinesService().
+		resp, err := client.Restful.Klines().
 			StartTime(nextStartTime).
 			EndTime(endTime).
 			Interval(interval.String()).
@@ -87,17 +99,18 @@ func updateKlineToStartTime(
 			return
 		}
 
-		if len(resp) == 0 {
+		klinesData := resp.Unwrap()
+		if len(klinesData) == 0 {
 			return
 		}
 
-		slice.From(resp...).Iter(func(k int, v *binance_connector.KlinesResponse) (bool, error) {
+		slice.From(klinesData...).Iter(func(k int, v klines.Kline) (bool, error) {
 			model := acl.ApiToDB(v)
 			trigger(model)
 			return true, nil
 		})
 
-		startTime = resp[0].OpenTime
+		startTime = uint64(klinesData[0].OpenTs)
 	}
 }
 
@@ -106,7 +119,7 @@ func UptodateKline(
 	logger log.Logger,
 	symbol string,
 	interval interval.Interval,
-	repoKline repository.KlineRepository,
+	repoKline kline.Repository,
 	marketClient *binance.MarketClient,
 	storeTrigger func(*models.Kline),
 	checkTrigger func(uint64),
