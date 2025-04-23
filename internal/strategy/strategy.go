@@ -68,6 +68,8 @@ type Strategy interface {
 	Position() *Position
 	// Balance 返回当前余额
 	Balance() *Balance
+	// Profit 计算盈亏
+	Profit(currentPrice decimal.Decimal) (absolute, percentage decimal.Decimal)
 }
 
 // BaseStrategy 基础策略结构体
@@ -100,6 +102,12 @@ func (s *BaseStrategy) Init(positionAmount, balanceAmount decimal.Decimal) error
 	s.position.Time = time.Now()
 	s.balance.Amount = balanceAmount
 	s.balance.Time = time.Now()
+	
+	// 设置初始持仓成本
+	if !positionAmount.IsZero() {
+		s.position.Cost = positionAmount.Mul(decimal.NewFromFloat(100.0)) // 假设初始价格为 100
+	}
+	
 	return nil
 }
 
@@ -126,6 +134,7 @@ func (s *BaseStrategy) Buy(amount, price decimal.Decimal) *Signal {
 	// 更新余额和仓位
 	s.balance.Amount = s.balance.Amount.Sub(usdtAmount)
 	s.position.Amount = s.position.Amount.Add(amount)
+	// 更新持仓成本：新成本 = 旧成本 + 新买入成本
 	s.position.Cost = s.position.Cost.Add(usdtAmount)
 	s.position.Time = time.Now()
 	s.balance.Time = time.Now()
@@ -151,7 +160,9 @@ func (s *BaseStrategy) Sell(amount, price decimal.Decimal) *Signal {
 	// 更新余额和仓位
 	s.balance.Amount = s.balance.Amount.Add(usdtAmount)
 	s.position.Amount = s.position.Amount.Sub(amount)
-	s.position.Cost = s.position.Cost.Sub(usdtAmount)
+	// 更新持仓成本：新成本 = 旧成本 * (1 - 卖出比例)
+	sellRatio := amount.Div(s.position.Amount.Add(amount))
+	s.position.Cost = s.position.Cost.Mul(decimal.NewFromInt(1).Sub(sellRatio))
 	s.position.Time = time.Now()
 	s.balance.Time = time.Now()
 
@@ -169,4 +180,29 @@ func (s *BaseStrategy) Hold() *Signal {
 		Type: SignalTypeHold,
 		Time: time.Now(),
 	}
+}
+
+// Profit 计算盈亏
+func (s *BaseStrategy) Profit(currentPrice decimal.Decimal) (absolute, percentage decimal.Decimal) {
+	if s.position.Amount.IsZero() {
+		return decimal.Zero, decimal.Zero
+	}
+
+	// 计算当前持仓市值
+	currentValue := s.position.Amount.Mul(currentPrice)
+	
+	// 计算盈亏绝对数量
+	absolute = currentValue.Sub(s.position.Cost)
+	
+	// 计算盈亏百分比
+	if s.position.Cost.IsZero() {
+		percentage = decimal.Zero
+	} else {
+		// 计算平均成本价
+		avgCost := s.position.Cost.Div(s.position.Amount)
+		// 计算盈亏百分比
+		percentage = currentPrice.Sub(avgCost).Div(avgCost).Mul(decimal.NewFromInt(100))
+	}
+
+	return absolute, percentage
 } 

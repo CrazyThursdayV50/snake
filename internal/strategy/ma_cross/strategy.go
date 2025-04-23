@@ -29,6 +29,14 @@ func (s *MACrossStrategy) Update(kline *models.Kline, ma20 *ma.MA, ma60 *ma.MA) 
 	// 计算交易数量（当前仓位的 5%）
 	tradeAmount := s.Position().Amount.Mul(decimal.NewFromFloat(0.05))
 
+	// 计算当前盈亏
+	absolute, percentage := s.BaseStrategy.Profit(kline.C)
+	
+	// 如果当前有持仓，打印盈亏信息
+	if !s.Position().Amount.IsZero() {
+		println("当前持仓盈亏：", absolute.String(), "USDT (", percentage.String(), "%)")
+	}
+	
 	// 当前价格高于 MA20，卖出
 	if kline.C.GreaterThan(ma20.Price) {
 		signal := s.Sell(tradeAmount, kline.C)
@@ -49,4 +57,9 @@ func (s *MACrossStrategy) Update(kline *models.Kline, ma20 *ma.MA, ma60 *ma.MA) 
 
 	// 价格在 MA20 和 MA60 之间，持有
 	return s.Hold(), nil
+}
+
+// Profit 计算盈亏
+func (s *MACrossStrategy) Profit(currentPrice decimal.Decimal) (absolute, percentage decimal.Decimal) {
+	return s.BaseStrategy.Profit(currentPrice)
 } 

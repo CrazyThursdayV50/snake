@@ -14,4 +14,7 @@ type KlineRepository interface {
 	List(ctx context.Context, interval interval.Interval, from, to int64) ([]*models.Kline, error)
 
 	CheckMissing(ctx context.Context, interval interval.Interval, openTs []int64) ([]uint64, error)
+
+	// ListAll 获取指定时间间隔的所有 kline 数据，按时间升序排序
+	ListAll(ctx context.Context, interval interval.Interval) ([]*models.Kline, error)
 }
