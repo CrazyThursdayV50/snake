@@ -1,0 +1,73 @@
+# 日志配置
+log:
+  # 是否为开发环境
+  development: true
+  # 是否输出到控制台
+  console: true
+  # 是否禁用调用者信息
+  disableCaller: false
+  # 是否禁用堆栈跟踪
+  disableStacktrace: false
+  # 日志级别：debug, info, warn, error
+  level: debug
+  # 调用者跳过的层级
+  callerSkip: 1
+
+# 服务配置
+service:
+  # 交易对
+  symbol: BTCUSDT
+
+# MySQL 配置
+mysql:
+  # 数据库名称
+  schema: test
+  # 数据库连接字符串
+  dsn: username:password@tcp(host:port)/database?charset=utf8mb4&parseTime=True&loc=Local
+  # 最大空闲连接数
+  maxIdleConn: 10
+  # 最大打开连接数
+  maxOpenConn: 2
+  # 连接最大生命周期（秒）
+  maxLifeTime: 3600
+  # 连接最大空闲时间（秒）
+  maxIdleTime: 300
+  # MySQL 服务器版本
+  serverVersion: 8.4.0
+  # GORM 配置
+  gorm:
+    # 是否跳过默认事务
+    skipDefaultTransaction: true
+    # 是否完全保存关联
+    fullSaveAssociations: true
+    # 迁移时是否禁用外键约束
+    disableForeignKeyConstraintWhenMigrating: true
+    # 迁移时是否忽略关系
+    ignoreRelationshipsWhenMigrating: true
+    # 是否查询字段
+    queryFields: true
+    # 批量创建大小
+    createBatchSize: 100
+    # 是否翻译错误
+    translateError: true
+    # 是否传播未限定范围
+    propagateUnscoped: true
+  # 日志配置
+  logger:
+    # 慢查询阈值
+    slowThreshold: 100ms
+    # 是否彩色输出
+    colorful: true
+    # 是否参数化查询
+    parameterizedQueries: false
+    # 日志级别：info, warn, error
+    logLevel: info
+
+# Binance 配置
+binance:
+  # API 密钥（从环境变量获取）
+  apiKey: ${BN_APIKEY}
+  # 密钥（从环境变量获取）
+  secretKey: ${BN_SECRET}
+  # API 基础 URL
+  baseURL: "" 

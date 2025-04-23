@@ -10,7 +10,6 @@ import (
 	"snake/internal/kline/storage/mysql/migrate"
 	"snake/internal/kline/storage/mysql/models"
 	"snake/internal/kline/workers"
-	"snake/internal/server/config"
 	"snake/pkg/binance"
 
 	"github.com/CrazyThursdayV50/pkgo/log"
@@ -36,7 +35,7 @@ type Handlers struct {
 }
 
 type Server struct {
-	cfg      *config.Config
+	cfg      *Config
 	logger   log.Logger
 	clients  *Clients
 	repos    *Repositories
@@ -44,7 +43,7 @@ type Server struct {
 	Handlers *Handlers
 }
 
-func New(cfg *config.Config) *Server {
+func New(cfg *Config) *Server {
 	return &Server{cfg: cfg, clients: &Clients{}, repos: &Repositories{}, Workers: &Workers{}, Handlers: &Handlers{}}
 }
 

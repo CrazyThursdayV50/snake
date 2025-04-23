@@ -10,6 +10,7 @@ import (
 	"snake/internal/repository"
 	"snake/pkg/binance"
 
+	"github.com/CrazyThursdayV50/pkgo/builtin/collector"
 	"github.com/CrazyThursdayV50/pkgo/builtin/slice"
 	"github.com/CrazyThursdayV50/pkgo/log"
 	"github.com/CrazyThursdayV50/pkgo/worker"
@@ -49,10 +50,16 @@ func updateKlineFromStartTime(
 			return
 		}
 
-		slice.From(resp...).Iter(func(k int, v *binance_connector.KlinesResponse) (bool, error) {
-			model := acl.ApiToDB(v)
-			trigger(model)
-			startTime = v.OpenTime
+
+		klines := collector.Slice(resp, func(k int, v *binance_connector.KlinesResponse) (bool, *models.Kline) {
+			return true, acl.ApiToDB(v)
+		})
+
+		klines = utils.FillKlinesDB(klines, interval, int64(endTime))
+
+		slice.From(klines...).Iter(func(k int, v *models.Kline) (bool, error) {
+			trigger(v)
+			startTime = uint64(v.OpenTs)
 			return true, nil
 		})
 	}
