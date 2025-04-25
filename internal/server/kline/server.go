@@ -139,24 +139,44 @@ func (s *Server) Run() {
 	s.initWorkers(ctx)
 
 	handler := handler.NewWsKline(s.min1Uptodater, s.mint1Storer)
-	_, stop, err := s.clients.binanceMarket.Stream.WsKlineServe(s.cfg.Binance.Symbol, interval.Min1().String(), func(event *binance_connector.WsKlineEvent) {
-		s.logger.Infof("kline event: %+#v", event)
-		handler.Handle(event)
-		_, kline := acl.Ws2Service(0, event)
-		data, _ := kline.MarshalBinary()
-		s.Wsserver.Broadcast(ctx, websocket.TextMessage, data)
-	}, func(err error) {
-		s.logger.Error("get kline error: %v", err)
-	})
 
+	var done = new(chan struct{})
+	var stop = new(chan struct{})
+	var err error
+	var startKline = func() {
+		*done, *stop, err = s.clients.binanceMarket.Stream.WsKlineServe(s.cfg.Binance.Symbol, interval.Min1().String(), func(event *binance_connector.WsKlineEvent) {
+			s.logger.Infof("kline event: %+#v", event)
+			handler.Handle(event)
+			_, kline := acl.Ws2Service(0, event)
+			data, _ := kline.MarshalBinary()
+			s.Wsserver.Broadcast(ctx, websocket.TextMessage, data)
+		}, func(err error) {
+			s.logger.Error("get kline error: %v", err)
+		})
+	}
+
+	startKline()
 	if err != nil {
 		s.logger.Errorf("connect binance failed")
 		panic(err)
 	}
 
 	goo.Go(func() {
+		for {
+			select {
+			case <-*done:
+				startKline()
+
+			case <-ctx.Done():
+				return
+			}
+		}
+
+	})
+
+	goo.Go(func() {
 		<-ctx.Done()
-		close(stop)
+		close(*stop)
 	})
 
 	var wg sync.WaitGroup
