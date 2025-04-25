@@ -1,7 +1,7 @@
 package ma
 
 import (
-	"snake/internal/models"
+	"snake/internal/kline"
 	"testing"
 	"time"
 
@@ -13,7 +13,7 @@ func TestNextKline(t *testing.T) {
 	t.Run("normal case", func(t *testing.T) {
 		// 创建测试数据
 		startTime := time.Now().Unix() * 1000
-		klines := []*models.Kline{
+		klines := []*kline.Kline{
 			{
 				O: decimal.NewFromFloat(100.0),
 				C: decimal.NewFromFloat(101.0),
@@ -75,7 +75,7 @@ func TestNextKline(t *testing.T) {
 	t.Run("earlier kline", func(t *testing.T) {
 		// 创建测试数据
 		startTime := time.Now().Unix() * 1000
-		klines := []*models.Kline{
+		klines := []*kline.Kline{
 			{
 				O: decimal.NewFromFloat(100.0),
 				C: decimal.NewFromFloat(101.0),
@@ -115,7 +115,7 @@ func TestNextKline(t *testing.T) {
 	t.Run("non-continuous kline", func(t *testing.T) {
 		// 创建测试数据
 		startTime := time.Now().Unix() * 1000
-		klines := []*models.Kline{
+		klines := []*kline.Kline{
 			{
 				O: decimal.NewFromFloat(100.0),
 				C: decimal.NewFromFloat(101.0),
@@ -160,4 +160,4 @@ func TestNextKline(t *testing.T) {
 			t.Error("expected nil for non-continuous kline")
 		}
 	})
-} 
+}

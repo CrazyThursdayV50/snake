@@ -15,8 +15,8 @@ log:
 
 # 服务配置
 service:
-  # 交易对
-  symbol: BTCUSDT
+  host: 127.0.0.1
+  port: 33557
 
 # MySQL 配置
 mysql:
@@ -69,5 +69,4 @@ binance:
   apiKey: ${BN_APIKEY}
   # 密钥（从环境变量获取）
   secretKey: ${BN_SECRET}
-  # API 基础 URL
-  baseURL: "" 
+  symbol: BTCUSDT

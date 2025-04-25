@@ -1,7 +1,7 @@
 package ma
 
 import (
-	"snake/internal/models"
+	"snake/internal/kline"
 	"snake/pkg/math"
 
 	"github.com/CrazyThursdayV50/pkgo/builtin/collector"
@@ -25,8 +25,8 @@ type MA struct {
 // 	return &MA{count: m.count, prices: prices, Price: decimal.Decimal}
 // }
 
-func New(klines ...*models.Kline) *MA {
-	var prices = collector.Slice(klines, func(_ int, k *models.Kline) (bool, decimal.Decimal) {
+func New(klines ...*kline.Kline) *MA {
+	var prices = collector.Slice(klines, func(_ int, k *kline.Kline) (bool, decimal.Decimal) {
 		return true, k.C
 	})
 	var count = len(klines)
@@ -37,7 +37,7 @@ func New(klines ...*models.Kline) *MA {
 
 // NextKline 计算下一个 Kline 对应的 MA
 // 如果传入的 Kline 不是当前 MA 的下一个 Kline，返回 nil
-func (m *MA) NextKline(kline *models.Kline) *MA {
+func (m *MA) NextKline(kline *kline.Kline) *MA {
 	// 检查是否是下一个 Kline
 	if kline.S <= m.Timestamp {
 		return nil

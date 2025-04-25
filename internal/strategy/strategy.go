@@ -1,8 +1,8 @@
 package strategy
 
 import (
-	"snake/internal/indicates/ma"
-	"snake/internal/models"
+	"snake/internal/kline"
+	"snake/internal/types"
 	"time"
 
 	"github.com/shopspring/decimal"
@@ -29,7 +29,7 @@ type Balance struct {
 // Signal 表示交易信号
 type Signal struct {
 	// 信号类型：买入、卖出或持有
-	Type SignalType
+	Type types.SignalType
 	// 交易数量
 	Amount decimal.Decimal
 	// 交易价格
@@ -38,24 +38,6 @@ type Signal struct {
 	Time time.Time
 }
 
-// SignalType 表示信号类型
-type SignalType int
-
-const (
-	// SignalTypeHold 持有信号
-	SignalTypeHold SignalType = iota
-	// SignalTypeBuy 买入信号
-	SignalTypeBuy
-	// SignalTypeSell 卖出信号
-	SignalTypeSell
-)
-
-func (s SignalType) IsBuy() bool{return s == SignalTypeBuy}
-
-func (s SignalType) IsSell() bool{return s == SignalTypeSell}
-
-func (s SignalType) IsHold() bool{return s == SignalTypeHold}
-
 // Strategy 策略接口
 type Strategy interface {
 	// Name 返回策略名称
@@ -63,7 +45,7 @@ type Strategy interface {
 	// Init 初始化策略
 	Init(positionAmount, balanceAmount decimal.Decimal) error
 	// Update 更新策略状态
-	Update(kline *models.Kline, ma20 *ma.MA, ma60 *ma.MA) (*Signal, error)
+	Update(kline *kline.Kline) (*Signal, error)
 	// Position 返回当前持仓
 	Position() *Position
 	// Balance 返回当前余额
@@ -102,12 +84,13 @@ func (s *BaseStrategy) Init(positionAmount, balanceAmount decimal.Decimal) error
 	s.position.Time = time.Now()
 	s.balance.Amount = balanceAmount
 	s.balance.Time = time.Now()
-	
-	// 设置初始持仓成本
+
+	// 设置初始持仓成本（使用初始价格 100 USDT）
 	if !positionAmount.IsZero() {
-		s.position.Cost = positionAmount.Mul(decimal.NewFromFloat(100.0)) // 假设初始价格为 100
+		initialPrice := decimal.NewFromFloat(100.0)
+		s.position.Cost = positionAmount.Mul(initialPrice)
 	}
-	
+
 	return nil
 }
 
@@ -125,7 +108,7 @@ func (s *BaseStrategy) Balance() *Balance {
 func (s *BaseStrategy) Buy(amount, price decimal.Decimal) *Signal {
 	// 计算需要的 USDT 数量
 	usdtAmount := amount.Mul(price)
-	
+
 	// 检查余额是否足够
 	if s.balance.Amount.LessThan(usdtAmount) {
 		return nil
@@ -140,7 +123,7 @@ func (s *BaseStrategy) Buy(amount, price decimal.Decimal) *Signal {
 	s.balance.Time = time.Now()
 
 	return &Signal{
-		Type:   SignalTypeBuy,
+		Type:   types.SignalTypeBuy,
 		Amount: amount,
 		Price:  price,
 		Time:   time.Now(),
@@ -167,7 +150,7 @@ func (s *BaseStrategy) Sell(amount, price decimal.Decimal) *Signal {
 	s.balance.Time = time.Now()
 
 	return &Signal{
-		Type:   SignalTypeSell,
+		Type:   types.SignalTypeSell,
 		Amount: amount,
 		Price:  price,
 		Time:   time.Now(),
@@ -177,7 +160,7 @@ func (s *BaseStrategy) Sell(amount, price decimal.Decimal) *Signal {
 // Hold 返回持有信号
 func (s *BaseStrategy) Hold() *Signal {
 	return &Signal{
-		Type: SignalTypeHold,
+		Type: types.SignalTypeHold,
 		Time: time.Now(),
 	}
 }
@@ -190,19 +173,17 @@ func (s *BaseStrategy) Profit(currentPrice decimal.Decimal) (absolute, percentag
 
 	// 计算当前持仓市值
 	currentValue := s.position.Amount.Mul(currentPrice)
-	
+
 	// 计算盈亏绝对数量
 	absolute = currentValue.Sub(s.position.Cost)
-	
+
 	// 计算盈亏百分比
 	if s.position.Cost.IsZero() {
 		percentage = decimal.Zero
 	} else {
-		// 计算平均成本价
-		avgCost := s.position.Cost.Div(s.position.Amount)
-		// 计算盈亏百分比
-		percentage = currentPrice.Sub(avgCost).Div(avgCost).Mul(decimal.NewFromInt(100))
+		// 计算盈亏百分比：(当前市值 - 持仓成本) / 持仓成本 * 100
+		percentage = absolute.Div(s.position.Cost).Mul(decimal.NewFromInt(100))
 	}
 
 	return absolute, percentage
-} 
+}

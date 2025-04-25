@@ -1,8 +1,8 @@
 package utils
 
 import (
+	"snake/internal/kline"
 	"snake/internal/kline/interval"
-	"snake/internal/models"
 	"testing"
 	"time"
 
@@ -17,7 +17,7 @@ func TestFillKlines(t *testing.T) {
 	t.Run("normal case", func(t *testing.T) {
 		// 创建测试数据
 		startTime := time.Now().Unix() * 1000
-		klines := []*models.Kline{
+		klines := []*kline.Kline{
 			{
 				O: decimal.NewFromFloat(100.0),
 				C: decimal.NewFromFloat(101.0),
@@ -104,7 +104,7 @@ func TestFillKlines(t *testing.T) {
 
 	// 测试用例 2: 空输入
 	t.Run("empty input", func(t *testing.T) {
-		result := FillKlines([]*models.Kline{}, testInterval, time.Now().Unix()*1000)
+		result := FillKlines([]*kline.Kline{}, testInterval, time.Now().Unix()*1000)
 		if len(result) != 0 {
 			t.Errorf("expected empty result, got %d klines", len(result))
 		}
@@ -113,7 +113,7 @@ func TestFillKlines(t *testing.T) {
 	// 测试用例 3: 连续 Kline（不需要填充中间，但需要填充最后）
 	t.Run("continuous klines", func(t *testing.T) {
 		startTime := time.Now().Unix() * 1000
-		klines := []*models.Kline{
+		klines := []*kline.Kline{
 			{
 				O: decimal.NewFromFloat(100.0),
 				C: decimal.NewFromFloat(101.0),
@@ -173,4 +173,4 @@ func TestFillKlines(t *testing.T) {
 			t.Errorf("third kline end time mismatch, expected %d, got %d", startTime+179999, result[2].E)
 		}
 	})
-} 
+}

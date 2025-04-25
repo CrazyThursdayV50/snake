@@ -1,7 +1,7 @@
 package bollingband
 
 import (
-	"snake/internal/models"
+	"snake/internal/kline"
 	"snake/pkg/math"
 
 	"github.com/CrazyThursdayV50/pkgo/builtin/collector"
@@ -17,8 +17,8 @@ type BB struct {
 	Timestamp int64
 }
 
-func New(klines ...*models.Kline) *BB {
-	var prices = collector.Slice(klines, func(_ int, k *models.Kline) (bool, decimal.Decimal) {
+func New(klines ...*kline.Kline) *BB {
+	var prices = collector.Slice(klines, func(_ int, k *kline.Kline) (bool, decimal.Decimal) {
 		return true, k.C
 	})
 	var count = len(klines)
@@ -39,7 +39,7 @@ func New(klines ...*models.Kline) *BB {
 
 // NextKline 计算下一个 Kline 对应的布林带
 // 如果传入的 Kline 不是当前布林带的下一个 Kline，返回 nil
-func (b *BB) NextKline(kline *models.Kline) *BB {
+func (b *BB) NextKline(kline *kline.Kline) *BB {
 	// 检查是否是下一个 Kline
 	if kline.S <= b.Timestamp {
 		return nil
@@ -69,4 +69,4 @@ func (b *BB) NextKline(kline *models.Kline) *BB {
 		Lower:     lower,
 		Timestamp: kline.E,
 	}
-} 
+}

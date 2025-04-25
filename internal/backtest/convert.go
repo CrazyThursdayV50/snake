@@ -1,14 +1,14 @@
 package backtest
 
 import (
+	"snake/internal/kline"
 	"snake/internal/kline/storage/mysql/models"
-	internalModels "snake/internal/models"
 
 	"github.com/shopspring/decimal"
 )
 
 // convertKline 将 MySQL 的 Kline 模型转换为内部 Kline 模型
-func convertKline(k *models.Kline) *internalModels.Kline {
+func convertKline(k *models.Kline) *kline.Kline {
 	o, _ := decimal.NewFromString(k.Open)
 	c, _ := decimal.NewFromString(k.Close)
 	h, _ := decimal.NewFromString(k.High)
@@ -16,7 +16,7 @@ func convertKline(k *models.Kline) *internalModels.Kline {
 	v, _ := decimal.NewFromString(k.Volume)
 	a, _ := decimal.NewFromString(k.Amount)
 
-	return &internalModels.Kline{
+	return &kline.Kline{
 		O: o,
 		C: c,
 		H: h,
@@ -29,10 +29,10 @@ func convertKline(k *models.Kline) *internalModels.Kline {
 }
 
 // convertKlines 批量转换 Kline 模型
-func convertKlines(klines []*models.Kline) []*internalModels.Kline {
-	result := make([]*internalModels.Kline, len(klines))
+func convertKlines(klines []*models.Kline) []*kline.Kline {
+	result := make([]*kline.Kline, len(klines))
 	for i, k := range klines {
 		result[i] = convertKline(k)
 	}
 	return result
-} 
+}

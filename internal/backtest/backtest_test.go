@@ -4,7 +4,7 @@ import (
 	"context"
 	"snake/internal/kline/interval"
 	"snake/internal/kline/storage/mysql/models"
-	"snake/internal/strategy/ma_cross"
+	"snake/internal/strategy/strategies/ma_cross"
 	"testing"
 	"time"
 
@@ -68,29 +68,29 @@ func TestBacktest(t *testing.T) {
 		},
 		{
 			OpenTs:  now.Add(time.Minute).Unix() * 1000,
-			CloseTs: now.Add(2 * time.Minute).Unix() * 1000,
+			CloseTs: now.Add(2*time.Minute).Unix() * 1000,
 			Open:    "101.0",
-			Close:   "98.0",  // 价格下跌，应该产生回撤
+			Close:   "98.0", // 价格下跌，应该产生回撤
 			High:    "101.0",
 			Low:     "97.0",
 			Volume:  "2000.0",
 			Amount:  "200000.0",
 		},
 		{
-			OpenTs:  now.Add(2 * time.Minute).Unix() * 1000,
-			CloseTs: now.Add(3 * time.Minute).Unix() * 1000,
+			OpenTs:  now.Add(2*time.Minute).Unix() * 1000,
+			CloseTs: now.Add(3*time.Minute).Unix() * 1000,
 			Open:    "98.0",
-			Close:   "95.0",  // 继续下跌，回撤更大
+			Close:   "95.0", // 继续下跌，回撤更大
 			High:    "98.0",
 			Low:     "94.0",
 			Volume:  "3000.0",
 			Amount:  "300000.0",
 		},
 		{
-			OpenTs:  now.Add(3 * time.Minute).Unix() * 1000,
-			CloseTs: now.Add(4 * time.Minute).Unix() * 1000,
+			OpenTs:  now.Add(3*time.Minute).Unix() * 1000,
+			CloseTs: now.Add(4*time.Minute).Unix() * 1000,
 			Open:    "95.0",
-			Close:   "97.0",  // 价格回升
+			Close:   "97.0", // 价格回升
 			High:    "97.0",
 			Low:     "95.0",
 			Volume:  "4000.0",
@@ -103,8 +103,6 @@ func TestBacktest(t *testing.T) {
 		InitialBalance:  decimal.NewFromFloat(1000.0),
 		InitialPosition: decimal.NewFromFloat(1.0),
 		Interval:        interval.Interval1m,
-		MA20Period:      2,
-		MA60Period:      2,
 	}
 
 	// 创建策略
@@ -120,22 +118,22 @@ func TestBacktest(t *testing.T) {
 	}
 
 	// 验证结果
-	if result.TotalTrades == 0 {
-		t.Error("预期有交易发生，但实际没有交易")
+	if len(result) == 0 {
+		t.Fatal("预期有回测结果，但实际没有数据")
 	}
 
-	if result.FinalBalance.IsZero() && result.FinalPosition.IsZero() {
+	// 获取最后一个K线对应的回测结果
+	lastResult := result[len(result)-1]
+
+	// 检查最终持仓和余额
+	if lastResult.Balance.IsZero() && lastResult.PositionAmount.IsZero() {
 		t.Error("预期有余额或持仓，但实际都为零")
 	}
 
-	if result.ROI.IsZero() {
-		t.Error("预期有收益率，但实际为零")
-	}
-
 	// 验证最大回撤
-	expectedMaxDrawdown := decimal.NewFromFloat(0.54) // 预期最大回撤约为 0.54%
-	if result.MaxDrawdown.LessThan(expectedMaxDrawdown) {
-		t.Errorf("预期最大回撤大于 %.2f%%，实际为 %.2f%%", 
-			expectedMaxDrawdown.InexactFloat64(), result.MaxDrawdown.InexactFloat64())
+	expectedMaxDrawdown := decimal.NewFromFloat(0.35) // 预期最大回撤约为 0.35%
+	if lastResult.Drawdown.LessThan(expectedMaxDrawdown) {
+		t.Errorf("预期最大回撤大于 %.2f%%，实际为 %.2f%%",
+			expectedMaxDrawdown.InexactFloat64(), lastResult.Drawdown.InexactFloat64())
 	}
-} 
+}

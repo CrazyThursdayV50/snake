@@ -3,11 +3,11 @@ package workers
 import (
 	"context"
 	"fmt"
+	"snake/internal/kline"
 	"snake/internal/kline/acl"
 	"snake/internal/kline/interval"
 	"snake/internal/kline/storage/mysql/models"
 	"snake/internal/kline/utils"
-	"snake/internal/repository"
 	"snake/pkg/binance"
 	"sort"
 
@@ -53,7 +53,7 @@ func gatherOpenTs(openTs []uint64, interval interval.Interval) map[uint64]int {
 	return paramsMap
 }
 
-func Checker(ctx context.Context, logger log.Logger, symbol string, interval interval.Interval, repoKline repository.KlineRepository, marketClient *binance.MarketClient, storeTrigger func(*models.Kline)) func(uint64) {
+func Checker(ctx context.Context, logger log.Logger, symbol string, interval interval.Interval, repoKline kline.Repository, marketClient *binance.MarketClient, storeTrigger func(*models.Kline)) func(uint64) {
 	worker, trigger := worker.New(fmt.Sprintf("KlineChecks-%s", interval.String()), func(stopTime uint64) {
 		logger.Infof("check to %d", stopTime)
 		tryFunc(func() error {
@@ -83,7 +83,7 @@ func Checker(ctx context.Context, logger log.Logger, symbol string, interval int
 				}
 
 				params := gatherOpenTs(missingTs, interval)
-				gmap.From(params).Iter(func(k uint64, v int) (bool, error) {
+				_, err = gmap.From(params).Iter(func(k uint64, v int) (bool, error) {
 					endTime := utils.GetEndTimeByStartTime(k, interval, int64(v))
 					resp, err := marketClient.Restful.NewKlinesService().
 						Symbol(symbol).

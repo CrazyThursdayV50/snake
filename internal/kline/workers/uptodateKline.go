@@ -3,11 +3,11 @@ package workers
 import (
 	"context"
 	"fmt"
+	"snake/internal/kline"
 	"snake/internal/kline/acl"
 	"snake/internal/kline/interval"
 	"snake/internal/kline/storage/mysql/models"
 	"snake/internal/kline/utils"
-	"snake/internal/repository"
 	"snake/pkg/binance"
 
 	"github.com/CrazyThursdayV50/pkgo/builtin/collector"
@@ -49,7 +49,6 @@ func updateKlineFromStartTime(
 			logger.Errorf("Failed to fetch klines: %v", err)
 			return
 		}
-
 
 		klines := collector.Slice(resp, func(k int, v *binance_connector.KlinesResponse) (bool, *models.Kline) {
 			return true, acl.ApiToDB(v)
@@ -113,7 +112,7 @@ func UptodateKline(
 	logger log.Logger,
 	symbol string,
 	interval interval.Interval,
-	repoKline repository.KlineRepository,
+	repoKline kline.Repository,
 	marketClient *binance.MarketClient,
 	storeTrigger func(*models.Kline),
 	checkTrigger func(uint64),

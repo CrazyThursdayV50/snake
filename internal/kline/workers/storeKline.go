@@ -3,9 +3,9 @@ package workers
 import (
 	"context"
 	"fmt"
+	"snake/internal/kline"
 	"snake/internal/kline/interval"
 	"snake/internal/kline/storage/mysql/models"
-	"snake/internal/repository"
 	"time"
 
 	"github.com/CrazyThursdayV50/pkgo/goo"
@@ -28,7 +28,7 @@ func tryFunc(f func() error, handler func(error), count int) {
 	panic("max tries reached")
 }
 
-func StoreKline(ctx context.Context, logger log.Logger, interval interval.Interval, repoKline repository.KlineRepository) func(*models.Kline) {
+func StoreKline(ctx context.Context, logger log.Logger, interval interval.Interval, repoKline kline.Repository) func(*models.Kline) {
 	var klinePipe = make(chan *models.Kline)
 	goo.Go(func() {
 		var klinesCache = make([]*models.Kline, 0, 1000)
