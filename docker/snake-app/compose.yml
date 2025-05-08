@@ -4,12 +4,12 @@ networks:
     external: true
 
 services:
-  snake-data:
+  snake-app:
     container_name: ${APP}
     image: ${APP}:local
     env_file: ${CONTAINER_ENV_FILE}
     ports:
-      - 33557:33557
+      - 22446:22446
     volumes:
       - /Users/alex/projects/alex/snake:/app/config
     networks:

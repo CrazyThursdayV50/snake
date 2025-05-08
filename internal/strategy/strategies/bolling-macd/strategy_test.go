@@ -1,6 +1,7 @@
 package bollingmacd
 
 import (
+	"context"
 	"snake/internal/kline"
 	"snake/internal/types"
 	"testing"
@@ -40,14 +41,14 @@ func createTestKlines(count int) []*kline.Kline {
 
 // 测试策略初始化
 func TestNew(t *testing.T) {
-	strategy := New()
+	strategy := New(context.WithCancel(context.TODO()))
 	assert.NotNil(t, strategy, "Strategy should not be nil")
 	assert.Equal(t, "Bolling-MACD Strategy", strategy.Name(), "Strategy name should match")
 }
 
 // 测试策略初始化参数
 func TestInit(t *testing.T) {
-	strategy := New()
+	strategy := New(context.WithCancel(context.TODO()))
 	err := strategy.Init(decimal.NewFromInt(10), decimal.NewFromInt(1000))
 	assert.NoError(t, err, "Init should not return error")
 
@@ -58,7 +59,7 @@ func TestInit(t *testing.T) {
 
 // 测试数据不足情况下的策略更新
 func TestUpdateInsufficientData(t *testing.T) {
-	strategy := New()
+	strategy := New(context.WithCancel(context.TODO()))
 	err := strategy.Init(decimal.Zero, decimal.NewFromInt(1000))
 	assert.NoError(t, err, "Init should not return error")
 
@@ -81,7 +82,7 @@ func TestUpdateInsufficientData(t *testing.T) {
 
 // 测试策略更新和信号生成
 func TestUpdateSignalGeneration(t *testing.T) {
-	strategy := New()
+	strategy := New(context.WithCancel(context.TODO()))
 	err := strategy.Init(decimal.Zero, decimal.NewFromInt(1000))
 	assert.NoError(t, err, "Init should not return error")
 
@@ -107,14 +108,29 @@ func TestUpdateSignalGeneration(t *testing.T) {
 
 // 测试策略盈亏计算
 func TestProfit(t *testing.T) {
-	strategy := New()
+	strategy := New(context.WithCancel(context.TODO()))
 
 	// 初始化策略，持有10个单位，成本为1000
 	err := strategy.Init(decimal.NewFromInt(10), decimal.NewFromInt(1000))
 	assert.NoError(t, err, "Init should not return error")
 
-	// 计算当前盈亏（假设当前价格为110）
-	absolute, percentage := strategy.Profit(decimal.NewFromInt(110))
+	// 创建一个K线，设置收盘价为110
+	kline := &kline.Kline{
+		S: time.Now().Unix(),
+		E: time.Now().Unix() + 1,
+		O: decimal.NewFromInt(100),
+		H: decimal.NewFromInt(105),
+		L: decimal.NewFromInt(95),
+		C: decimal.NewFromInt(110),
+		V: decimal.NewFromInt(1000),
+	}
+
+	// 更新策略以更新盈亏
+	_, err = strategy.Update(kline)
+	assert.NoError(t, err, "Update should not return error")
+
+	// 获取当前盈亏
+	absolute, percentage := strategy.Profit()
 
 	// 由于我们使用了BaseStrategy的默认实现，盈亏计算应该基于持仓成本
 	// 但初始持仓成本的计算逻辑可能因实现而异，所以这里只检查盈亏计算的逻辑

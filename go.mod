@@ -2,6 +2,8 @@ module snake
 
 go 1.24.0
 
+replace github.com/CrazyThursdayV50/pkgo v0.1.8 => /Users/alex/projects/alex/pkgo
+
 require (
 	github.com/CrazyThursdayV50/pkgo v0.1.8
 	github.com/binance/binance-connector-go v0.8.0

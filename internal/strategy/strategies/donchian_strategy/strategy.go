@@ -1,6 +1,7 @@
 package donchian_strategy
 
 import (
+	"context"
 	donchianchannel "snake/internal/indicates/donchian-channel"
 	"snake/internal/kline"
 	"snake/internal/strategy"
@@ -25,9 +26,9 @@ type DonchianStrategy struct {
 }
 
 // New 创建唐奇安通道策略
-func New() *DonchianStrategy {
+func New(ctx context.Context, cancel context.CancelFunc) *DonchianStrategy {
 	return &DonchianStrategy{
-		BaseStrategy:     strategy.NewBaseStrategy("Donchian Channel Strategy"),
+		BaseStrategy:     strategy.NewBaseStrategy(ctx, cancel, "Donchian Channel Strategy"),
 		historicalKlines: make([]*kline.Kline, 0, 50), // 预分配足够容量
 		breakoutPeriod:   20,
 		exitPeriod:       10,
@@ -58,7 +59,7 @@ func (s *DonchianStrategy) Update(kline *kline.Kline) (*strategy.Signal, error) 
 	currentPrice := kline.C
 
 	// 计算当前盈亏
-	absolute, percentage := s.BaseStrategy.Profit(currentPrice)
+	absolute, percentage := s.BaseStrategy.Profit()
 
 	// 如果当前有持仓，打印盈亏信息
 	if !s.Position().Amount.IsZero() {
@@ -81,14 +82,18 @@ func (s *DonchianStrategy) Update(kline *kline.Kline) (*strategy.Signal, error) 
 		if s.breakoutChannel.IsBuySignal(currentPrice) {
 			// 价格突破上轨，买入做多
 			s.position = "long"
-			signal := s.Buy(tradeAmount, currentPrice)
+			// 计算买入数量（使用当前价格的USDT数量）
+			usdtAmount := tradeAmount.Mul(currentPrice)
+			signal := s.Buy(usdtAmount, currentPrice)
 			if signal != nil {
 				return signal, nil
 			}
 		} else if currentPrice.LessThanOrEqual(s.breakoutChannel.Lower) {
 			// 价格突破下轨，卖出做空
 			s.position = "short"
-			signal := s.Sell(tradeAmount, currentPrice)
+			// 计算卖出数量（使用当前价格的USDT数量）
+			usdtAmount := tradeAmount.Mul(currentPrice)
+			signal := s.Sell(usdtAmount, currentPrice)
 			if signal != nil {
 				return signal, nil
 			}
@@ -197,7 +202,7 @@ func (s *DonchianStrategy) SetParams(breakoutPeriod, exitPeriod int, riskPercent
 	s.exitChannel = nil
 }
 
-// Profit 计算盈亏
-func (s *DonchianStrategy) Profit(currentPrice decimal.Decimal) (absolute, percentage decimal.Decimal) {
-	return s.BaseStrategy.Profit(currentPrice)
+// Profit 返回当前盈亏
+func (s *DonchianStrategy) Profit() (absolute, percentage decimal.Decimal) {
+	return s.BaseStrategy.Profit()
 }

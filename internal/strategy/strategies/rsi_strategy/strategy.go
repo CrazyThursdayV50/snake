@@ -1,6 +1,7 @@
 package rsi_strategy
 
 import (
+	"context"
 	"snake/internal/indicates/rsi"
 	"snake/internal/kline"
 	"snake/internal/strategy"
@@ -22,9 +23,9 @@ type RSIStrategy struct {
 }
 
 // New 创建RSI策略
-func New() *RSIStrategy {
+func New(ctx context.Context, cancel context.CancelFunc) *RSIStrategy {
 	return &RSIStrategy{
-		BaseStrategy:     strategy.NewBaseStrategy("RSI Strategy"),
+		BaseStrategy:     strategy.NewBaseStrategy(ctx, cancel, "RSI Strategy"),
 		historicalKlines: make([]*kline.Kline, 0, 30), // 预分配足够容量
 		rsiPeriod:        14,
 		oversoldLevel:    decimal.NewFromInt(30),
@@ -62,13 +63,13 @@ func (s *RSIStrategy) Update(kline *kline.Kline) (*strategy.Signal, error) {
 	// 对于卖出：使用当前持仓的10%
 	var buyAmount, sellAmount decimal.Decimal
 
-	// 计算可用的买入数量（余额的10%除以当前价格）
-	buyAmount = s.Balance().Amount.Mul(decimal.NewFromFloat(0.1)).Div(kline.C)
+	// 计算可用的买入数量（余额的10%）
+	buyAmount = s.Balance().Amount.Mul(decimal.NewFromFloat(0.1))
 	// 计算可用的卖出数量（持仓的10%）
 	sellAmount = s.Position().Amount.Mul(decimal.NewFromFloat(0.1))
 
 	// 计算当前盈亏
-	absolute, percentage := s.BaseStrategy.Profit(kline.C)
+	absolute, percentage := s.BaseStrategy.Profit()
 
 	// 如果当前有持仓，打印盈亏信息
 	if !s.Position().Amount.IsZero() {
@@ -114,7 +115,7 @@ func (s *RSIStrategy) SetParams(period int, oversold, overbought decimal.Decimal
 	s.rsiIndicator = nil
 }
 
-// Profit 计算盈亏
-func (s *RSIStrategy) Profit(currentPrice decimal.Decimal) (absolute, percentage decimal.Decimal) {
-	return s.BaseStrategy.Profit(currentPrice)
+// Profit 返回当前盈亏
+func (s *RSIStrategy) Profit() (absolute, percentage decimal.Decimal) {
+	return s.BaseStrategy.Profit()
 }

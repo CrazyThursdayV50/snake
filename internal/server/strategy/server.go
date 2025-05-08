@@ -2,20 +2,20 @@ package strategy
 
 import (
 	"context"
-	"snake/internal/kline"
-	"snake/internal/kline/interval"
-	"time"
+	"os"
+	"os/signal"
+	"sync"
 
-	gchan "github.com/CrazyThursdayV50/pkgo/builtin/chan"
 	"github.com/CrazyThursdayV50/pkgo/log"
 	defaultlogger "github.com/CrazyThursdayV50/pkgo/log/default"
 )
 
 type Server struct {
-	cfg     *Config
-	logger  log.Logger
-	clients *Clients
-	repos   *Repositories
+	cfg      *Config
+	logger   log.Logger
+	clients  *Clients
+	repos    *Repositories
+	services *Services
 }
 
 func (s *Server) initLogger() {
@@ -24,34 +24,34 @@ func (s *Server) initLogger() {
 	s.logger = logger
 }
 
-func (s *Server) init() {
+func (s *Server) init(ctx context.Context) {
 	s.initLogger()
 	s.initClients()
 	s.initRepositories()
+	s.initServices(ctx)
 }
 
 func New(cfg *Config) *Server {
 	return &Server{
-		cfg:     cfg,
-		clients: &Clients{},
-		repos:   &Repositories{},
+		cfg:      cfg,
+		clients:  &Clients{},
+		repos:    &Repositories{},
+		services: &Services{},
 	}
 }
 
 func (s *Server) Run() {
-	s.init()
+	var ctx, cancel = context.WithCancel(context.Background())
+	s.init(ctx)
 
-	var ctx = context.Background()
-	var now = time.Now()
-	from := now.Add(-time.Hour)
-	ch := s.repos.klineRepo.GetKlines(ctx, interval.Min1(), from.Unix()*1000)
+	var wg sync.WaitGroup
+	s.services.Run(ctx, s.cfg.Service, &wg)
 
-	_, err := gchan.FromRead(ch).Iter(func(k int, v *kline.Kline) (bool, error) {
-		s.logger.Infof("kline: %v", v)
-		return true, nil
-	})
+	var signalChan = make(chan os.Signal, 1)
+	signal.Notify(signalChan, os.Interrupt)
+	<-signalChan
+	s.logger.Warn("SERVER EXIT ...")
+	cancel()
 
-	if err != nil {
-		s.logger.Errorf("err: %v", err)
-	}
+	wg.Wait()
 }

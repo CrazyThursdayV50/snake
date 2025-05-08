@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/CrazyThursdayV50/pkgo/builtin/slice"
+	"github.com/CrazyThursdayV50/pkgo/goo"
 	"github.com/CrazyThursdayV50/pkgo/log"
 	"github.com/CrazyThursdayV50/pkgo/websocket/client"
 	"github.com/gorilla/websocket"
@@ -79,7 +80,14 @@ func (r *Repository) GetKlines(ctx context.Context, interval interval.Interval, 
 			return nil
 		}),
 	)
-	client.Run()
 
+	goo.Go(func() {
+		<-ctx.Done()
+		fmt.Printf("receive exit\n")
+		client.Stop()
+		close(ch)
+	})
+
+	client.Run()
 	return ch
 }

@@ -17,6 +17,7 @@ type DC struct {
 	Middle    decimal.Decimal   // 中轨 - 上轨和下轨的中点
 	Lower     decimal.Decimal   // 下轨 - 周期内最低价
 	Timestamp int64
+	LastPrice decimal.Decimal   // 最新价格
 }
 
 // New 创建新的唐奇安通道指标实例，使用默认20天周期
@@ -68,6 +69,7 @@ func NewWithPeriod(period int, klines ...*kline.Kline) *DC {
 
 	var count = len(klines)
 	var ts = klines[count-1].E
+	var lastPrice = klines[count-1].C
 
 	return &DC{
 		count:     count,
@@ -79,35 +81,50 @@ func NewWithPeriod(period int, klines ...*kline.Kline) *DC {
 		Middle:    middle,
 		Lower:     lowest,
 		Timestamp: ts,
+		LastPrice: lastPrice,
 	}
 }
 
 // NextKline 计算下一个K线对应的唐奇安通道
-// 如果传入的K线不是当前唐奇安通道的下一个K线，返回nil
+// 如果传入的K线时间戳小于当前唐奇安通道的时间戳，返回nil
 func (d *DC) NextKline(kline *kline.Kline) *DC {
-	// 检查是否是下一个K线
-	if kline.S <= d.Timestamp {
+	// 检查是否是新的K线或更新数据
+	if kline.S < d.Timestamp {
 		return nil
 	}
 
-	// 检查时间间隔是否连续
-	if kline.S != d.Timestamp+1 {
-		return nil
+	var newPrices []decimal.Decimal
+	var newHighs []decimal.Decimal
+	var newLows []decimal.Decimal
+
+	// 判断是否是更新最后一条K线
+	if kline.S == d.Timestamp {
+		// 更新最后一条K线的价格
+		newPrices = make([]decimal.Decimal, len(d.prices))
+		copy(newPrices, d.prices)
+		newPrices[len(newPrices)-1] = kline.C
+
+		newHighs = make([]decimal.Decimal, len(d.highs))
+		copy(newHighs, d.highs)
+		newHighs[len(newHighs)-1] = kline.H
+
+		newLows = make([]decimal.Decimal, len(d.lows))
+		copy(newLows, d.lows)
+		newLows[len(newLows)-1] = kline.L
+	} else {
+		// 新增K线
+		newPrices = make([]decimal.Decimal, len(d.prices)+1)
+		copy(newPrices, d.prices)
+		newPrices[len(newPrices)-1] = kline.C
+
+		newHighs = make([]decimal.Decimal, len(d.highs)+1)
+		copy(newHighs, d.highs)
+		newHighs[len(newHighs)-1] = kline.H
+
+		newLows = make([]decimal.Decimal, len(d.lows)+1)
+		copy(newLows, d.lows)
+		newLows[len(newLows)-1] = kline.L
 	}
-
-	// 更新价格数组
-	var newPrices = make([]decimal.Decimal, len(d.prices)+1)
-	copy(newPrices, d.prices)
-	newPrices[len(newPrices)-1] = kline.C
-
-	// 更新最高价和最低价数组
-	var newHighs = make([]decimal.Decimal, len(d.highs)+1)
-	copy(newHighs, d.highs)
-	newHighs[len(newHighs)-1] = kline.H
-
-	var newLows = make([]decimal.Decimal, len(d.lows)+1)
-	copy(newLows, d.lows)
-	newLows[len(newLows)-1] = kline.L
 
 	// 计算唐奇安通道
 	// 取最近period个K线的最高价和最低价
@@ -143,6 +160,7 @@ func (d *DC) NextKline(kline *kline.Kline) *DC {
 		Middle:    middle,
 		Lower:     lowest,
 		Timestamp: kline.E,
+		LastPrice: kline.C,
 	}
 }
 

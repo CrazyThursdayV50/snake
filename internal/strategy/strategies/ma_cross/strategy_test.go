@@ -1,6 +1,7 @@
 package ma_cross
 
 import (
+	"context"
 	"snake/internal/kline"
 	"testing"
 	"time"
@@ -17,7 +18,7 @@ func TestMACrossStrategy(t *testing.T) {
 
 	// 创建辅助函数，用于初始化策略并填充历史数据
 	initStrategy := func(positionAmount, balanceAmount decimal.Decimal) *MACrossStrategy {
-		strategy := New()
+		strategy := New(context.WithCancel(context.TODO()))
 		// 使用较小的MA周期值，以便测试能够正确运行
 		strategy.ma20Period = 20
 		strategy.ma60Period = 60

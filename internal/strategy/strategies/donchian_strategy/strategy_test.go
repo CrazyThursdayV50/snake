@@ -1,6 +1,7 @@
 package donchian_strategy
 
 import (
+	"context"
 	"snake/internal/kline"
 	"snake/internal/types"
 	"testing"
@@ -47,7 +48,7 @@ func generateTestKlines(startTime int64, count int) []*kline.Kline {
 
 // 测试策略初始化
 func TestNew(t *testing.T) {
-	strategy := New()
+	strategy := New(context.WithCancel(context.TODO()))
 	assert.NotNil(t, strategy)
 	assert.Equal(t, "Donchian Channel Strategy", strategy.Name())
 	assert.Equal(t, 20, strategy.breakoutPeriod)
@@ -58,7 +59,7 @@ func TestNew(t *testing.T) {
 
 // 测试策略参数设置
 func TestSetParams(t *testing.T) {
-	strategy := New()
+	strategy := New(context.WithCancel(context.TODO()))
 	strategy.SetParams(30, 15, decimal.NewFromFloat(2.0))
 
 	assert.Equal(t, 30, strategy.breakoutPeriod)
@@ -70,7 +71,7 @@ func TestSetParams(t *testing.T) {
 
 // 测试策略更新-当数据不足时
 func TestUpdateInsufficientData(t *testing.T) {
-	strategy := New()
+	strategy := New(context.WithCancel(context.TODO()))
 	err := strategy.Init(decimal.Zero, decimal.NewFromInt(1000))
 	assert.NoError(t, err)
 
@@ -85,7 +86,7 @@ func TestUpdateInsufficientData(t *testing.T) {
 
 // 测试策略更新-当足够数据时应该生成信号
 func TestUpdateWithSufficientData(t *testing.T) {
-	strategy := New()
+	strategy := New(context.WithCancel(context.TODO()))
 	err := strategy.Init(decimal.Zero, decimal.NewFromInt(1000))
 	assert.NoError(t, err)
 
@@ -114,7 +115,7 @@ func TestUpdateWithSufficientData(t *testing.T) {
 
 // 测试多头平仓
 func TestLongPositionExit(t *testing.T) {
-	strategy := New()
+	strategy := New(context.WithCancel(context.TODO()))
 	err := strategy.Init(decimal.NewFromInt(1), decimal.NewFromInt(1000))
 	assert.NoError(t, err)
 
@@ -145,7 +146,7 @@ func TestLongPositionExit(t *testing.T) {
 
 // 测试空头平仓
 func TestShortPositionExit(t *testing.T) {
-	strategy := New()
+	strategy := New(context.WithCancel(context.TODO()))
 	err := strategy.Init(decimal.NewFromInt(1), decimal.NewFromInt(1000))
 	assert.NoError(t, err)
 
@@ -176,7 +177,7 @@ func TestShortPositionExit(t *testing.T) {
 
 // 测试计算仓位大小
 func TestCalculatePositionSize(t *testing.T) {
-	strategy := New()
+	strategy := New(context.WithCancel(context.TODO()))
 	strategy.Init(decimal.Zero, decimal.NewFromInt(1000))
 
 	// 创建足够的K线数据并初始化指标

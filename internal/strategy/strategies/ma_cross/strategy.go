@@ -1,6 +1,7 @@
 package ma_cross
 
 import (
+	"context"
 	"snake/internal/indicates/ma"
 	"snake/internal/kline"
 	"snake/internal/strategy"
@@ -24,9 +25,9 @@ type MACrossStrategy struct {
 }
 
 // New 创建 MA 交叉策略
-func New() *MACrossStrategy {
+func New(ctx context.Context, cancel context.CancelFunc) *MACrossStrategy {
 	return &MACrossStrategy{
-		BaseStrategy:     strategy.NewBaseStrategy("MA Cross Strategy"),
+		BaseStrategy:     strategy.NewBaseStrategy(ctx,cancel, "MA Cross Strategy"),
 		historicalKlines: make([]*kline.Kline, 0, 60), // 预分配足够容量
 		ma20Period:       20,
 		ma60Period:       60,
@@ -64,9 +65,13 @@ func (s *MACrossStrategy) Update(kline *kline.Kline) (*strategy.Signal, error) {
 
 	// 计算交易数量（当前仓位的 5%）
 	tradeAmount := s.Position().Amount.Mul(decimal.NewFromFloat(0.05))
+	// 如果仓位为0，则使用余额的5%
+	if s.Position().Amount.IsZero() {
+		tradeAmount = s.Balance().Amount.Mul(decimal.NewFromFloat(0.05))
+	}
 
 	// 计算当前盈亏
-	absolute, percentage := s.BaseStrategy.Profit(kline.C)
+	absolute, percentage := s.BaseStrategy.Profit()
 
 	// 如果当前有持仓，打印盈亏信息
 	if !s.Position().Amount.IsZero() {
@@ -115,7 +120,7 @@ func (s *MACrossStrategy) Update(kline *kline.Kline) (*strategy.Signal, error) {
 	return s.Hold(), nil
 }
 
-// Profit 计算盈亏
-func (s *MACrossStrategy) Profit(currentPrice decimal.Decimal) (absolute, percentage decimal.Decimal) {
-	return s.BaseStrategy.Profit(currentPrice)
+// Profit 返回当前盈亏
+func (s *MACrossStrategy) Profit() (absolute, percentage decimal.Decimal) {
+	return s.BaseStrategy.Profit()
 }

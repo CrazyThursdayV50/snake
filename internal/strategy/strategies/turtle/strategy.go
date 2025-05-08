@@ -1,6 +1,7 @@
 package turtle
 
 import (
+	"context"
 	donchianchannel "snake/internal/indicates/donchian-channel"
 	"snake/internal/kline"
 	"snake/internal/strategy"
@@ -30,9 +31,9 @@ type TurtleStrategy struct {
 }
 
 // New 创建海龟交易法则策略
-func New() *TurtleStrategy {
+func New(ctx context.Context, cancel context.CancelFunc) *TurtleStrategy {
 	return &TurtleStrategy{
-		BaseStrategy:     strategy.NewBaseStrategy("Turtle Trading Strategy"),
+		BaseStrategy:     strategy.NewBaseStrategy(ctx, cancel, "Turtle Trading Strategy"),
 		historicalKlines: make([]*kline.Kline, 0, 50), // 预分配足够容量
 		donchianPeriod:   20,
 		atrPeriod:        14,
@@ -76,7 +77,7 @@ func (s *TurtleStrategy) Update(kline *kline.Kline) (*strategy.Signal, error) {
 
 	// 当前持仓盈亏
 	if !s.Position().Amount.IsZero() {
-		absolute, percentage := s.BaseStrategy.Profit(kline.C)
+		absolute, percentage := s.BaseStrategy.Profit()
 		println("当前持仓盈亏：", absolute.String(), "USDT (", percentage.String(), "%)")
 	}
 
@@ -299,7 +300,9 @@ func (s *TurtleStrategy) evaluateLongPosition(kline *kline.Kline, tradeAmount de
 			s.lastEntryPrice = kline.C
 			// 更新止损
 			s.stopLoss = kline.C.Sub(s.atr.Mul(decimal.NewFromFloat(2)))
-			return s.Buy(tradeAmount, kline.C), nil
+			// 计算加仓数量（使用当前价格的USDT数量）
+			usdtAmount := tradeAmount.Mul(kline.C)
+			return s.Buy(usdtAmount, kline.C), nil
 		}
 	}
 
@@ -356,16 +359,18 @@ func (s *TurtleStrategy) evaluateShortPosition(kline *kline.Kline, tradeAmount d
 			s.lastEntryPrice = kline.C
 			// 更新止损
 			s.stopLoss = kline.C.Add(s.atr.Mul(decimal.NewFromFloat(2)))
-			return s.Sell(tradeAmount, kline.C), nil
+			// 计算加仓数量（使用当前价格的USDT数量）
+			usdtAmount := tradeAmount.Mul(kline.C)
+			return s.Sell(usdtAmount, kline.C), nil
 		}
 	}
 
 	return nil, nil
 }
 
-// Profit 计算盈亏
-func (s *TurtleStrategy) Profit(currentPrice decimal.Decimal) (absolute, percentage decimal.Decimal) {
-	return s.BaseStrategy.Profit(currentPrice)
+// Profit 返回当前盈亏
+func (s *TurtleStrategy) Profit() (absolute, percentage decimal.Decimal) {
+	return s.BaseStrategy.Profit()
 }
 
 // 辅助方法，转发到BaseStrategy

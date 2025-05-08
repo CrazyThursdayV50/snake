@@ -25,6 +25,7 @@ type MACD struct {
 	slowPeriod   int               // 慢速EMA周期
 	signalPeriod int               // 信号线周期
 	macdValues   []decimal.Decimal // 保存MACD历史值用于计算信号线
+	LastPrice    decimal.Decimal   // 最新价格
 }
 
 // New 创建新的MACD指标实例
@@ -75,6 +76,7 @@ func NewWithParams(fastPeriod, slowPeriod, signalPeriod int, klines ...*kline.Kl
 	var histogram = macdValue.Sub(signal)
 
 	var ts = klines[count-1].E
+	var lastPrice = klines[count-1].C
 
 	return &MACD{
 		count:        count,
@@ -89,26 +91,31 @@ func NewWithParams(fastPeriod, slowPeriod, signalPeriod int, klines ...*kline.Kl
 		slowPeriod:   slowPeriod,
 		signalPeriod: signalPeriod,
 		macdValues:   macdValues,
+		LastPrice:    lastPrice,
 	}
 }
 
 // NextKline 计算下一个K线对应的MACD
-// 如果传入的K线不是当前MACD的下一个K线，返回nil
+// 如果传入的K线时间戳小于当前MACD的时间戳，返回nil
 func (m *MACD) NextKline(kline *kline.Kline) *MACD {
-	// 检查是否是下一个K线
-	if kline.S <= m.Timestamp {
+	// 检查是否是新的K线或更新数据
+	if kline.S < m.Timestamp {
 		return nil
 	}
 
-	// 检查时间间隔是否连续
-	if kline.S != m.Timestamp+1 {
-		return nil
+	var prices []decimal.Decimal
+	// 判断是否是更新最后一条K线
+	if kline.S == m.Timestamp {
+		// 更新最后一条K线的价格
+		prices = make([]decimal.Decimal, len(m.prices))
+		copy(prices, m.prices)
+		prices[len(prices)-1] = kline.C
+	} else {
+		// 新增K线
+		prices = make([]decimal.Decimal, len(m.prices))
+		copy(prices, m.prices[1:])
+		prices[len(prices)-1] = kline.C
 	}
-
-	// 移除第一个价格，添加新的价格
-	var prices = make([]decimal.Decimal, len(m.prices))
-	copy(prices, m.prices[1:])
-	prices[len(prices)-1] = kline.C
 
 	// 计算新的快速EMA
 	// 使用递推公式：EMA(t) = Price(t) * k + EMA(t-1) * (1-k) 其中 k = 2/(Period+1)
@@ -126,8 +133,15 @@ func (m *MACD) NextKline(kline *kline.Kline) *MACD {
 	var macdValues []decimal.Decimal
 	if len(m.macdValues) > 0 {
 		macdValues = make([]decimal.Decimal, len(m.macdValues))
-		copy(macdValues, m.macdValues[1:])
-		macdValues[len(macdValues)-1] = macdValue
+		if kline.S == m.Timestamp {
+			// 更新最后一条MACD值
+			copy(macdValues, m.macdValues)
+			macdValues[len(macdValues)-1] = macdValue
+		} else {
+			// 新增MACD值
+			copy(macdValues, m.macdValues[1:])
+			macdValues[len(macdValues)-1] = macdValue
+		}
 	} else {
 		macdValues = []decimal.Decimal{macdValue}
 	}
@@ -152,6 +166,7 @@ func (m *MACD) NextKline(kline *kline.Kline) *MACD {
 		slowPeriod:   m.slowPeriod,
 		signalPeriod: m.signalPeriod,
 		macdValues:   macdValues,
+		LastPrice:    kline.C,
 	}
 }
 

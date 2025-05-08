@@ -1,6 +1,7 @@
 package turtle
 
 import (
+	"context"
 	donchianchannel "snake/internal/indicates/donchian-channel"
 	"snake/internal/kline"
 	"testing"
@@ -16,7 +17,7 @@ func TestTurtleStrategy(t *testing.T) {
 	klines := generateTestKlines(startTime, 100)
 
 	t.Run("Strategy Initialization", func(t *testing.T) {
-		strategy := New()
+		strategy := New(context.WithCancel(context.TODO()))
 
 		// 检查策略名称
 		assert.Equal(t, "Turtle Trading Strategy", strategy.Name())
@@ -31,7 +32,7 @@ func TestTurtleStrategy(t *testing.T) {
 	})
 
 	t.Run("Strategy Update Without Enough Data", func(t *testing.T) {
-		strategy := New()
+		strategy := New(context.WithCancel(context.TODO()))
 
 		// 初始化策略
 		err := strategy.Init(decimal.NewFromFloat(1.0), decimal.NewFromFloat(10000.0))
@@ -47,7 +48,7 @@ func TestTurtleStrategy(t *testing.T) {
 
 	// 测试做多入场信号
 	t.Run("Long Entry Signal", func(t *testing.T) {
-		strategy := New()
+		strategy := New(context.WithCancel(context.TODO()))
 
 		// 初始化策略
 		err := strategy.Init(decimal.NewFromFloat(0.0), decimal.NewFromFloat(10000.0))
@@ -102,7 +103,7 @@ func TestTurtleStrategy(t *testing.T) {
 
 	// 测试做空入场信号
 	t.Run("Short Entry Signal", func(t *testing.T) {
-		strategy := New()
+		strategy := New(context.WithCancel(context.TODO()))
 
 		// 初始化策略（确保有持仓）
 		err := strategy.Init(decimal.NewFromFloat(1.0), decimal.NewFromFloat(10000.0))
@@ -157,7 +158,7 @@ func TestTurtleStrategy(t *testing.T) {
 
 	// 测试加仓功能
 	t.Run("Position Scaling", func(t *testing.T) {
-		strategy := New()
+		strategy := New(context.WithCancel(context.TODO()))
 
 		// 初始化策略
 		err := strategy.Init(decimal.NewFromFloat(1.0), decimal.NewFromFloat(10000.0))
@@ -206,7 +207,7 @@ func TestTurtleStrategy(t *testing.T) {
 
 	// 测试止损功能
 	t.Run("Stop Loss", func(t *testing.T) {
-		strategy := New()
+		strategy := New(context.WithCancel(context.TODO()))
 
 		// 初始化策略
 		err := strategy.Init(decimal.NewFromFloat(1.0), decimal.NewFromFloat(10000.0))

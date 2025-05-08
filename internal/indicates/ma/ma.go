@@ -13,6 +13,7 @@ type MA struct {
 	prices    []decimal.Decimal
 	Price     decimal.Decimal
 	Timestamp int64
+	LastPrice decimal.Decimal // 最新价格
 }
 
 // func (m MA) Name() string { return fmt.Sprintf("%s%d", indicates.MA, m.count) }
@@ -32,26 +33,31 @@ func New(klines ...*kline.Kline) *MA {
 	var count = len(klines)
 	var price = math.AverageDecimals(prices...)
 	var ts = klines[count-1].E
-	return &MA{Price: price, count: count, Timestamp: ts, prices: prices}
+	var lastPrice = klines[count-1].C
+	return &MA{Price: price, count: count, Timestamp: ts, prices: prices, LastPrice: lastPrice}
 }
 
 // NextKline 计算下一个 Kline 对应的 MA
-// 如果传入的 Kline 不是当前 MA 的下一个 Kline，返回 nil
+// 如果传入的 Kline 时间戳小于当前 MA 的时间戳，返回 nil
 func (m *MA) NextKline(kline *kline.Kline) *MA {
-	// 检查是否是下一个 Kline
-	if kline.S <= m.Timestamp {
+	// 检查是否是新的K线或更新数据
+	if kline.S < m.Timestamp {
 		return nil
 	}
 
-	// 检查时间间隔是否连续
-	if kline.S != m.Timestamp+1 {
-		return nil
+	var prices []decimal.Decimal
+	// 判断是否是更新最后一条K线
+	if kline.S == m.Timestamp {
+		// 更新最后一条K线的价格
+		prices = make([]decimal.Decimal, len(m.prices))
+		copy(prices, m.prices)
+		prices[len(prices)-1] = kline.C
+	} else {
+		// 新增K线
+		prices = make([]decimal.Decimal, len(m.prices))
+		copy(prices, m.prices[1:])
+		prices[len(prices)-1] = kline.C
 	}
-
-	// 移除第一个价格，添加新的价格
-	var prices = make([]decimal.Decimal, len(m.prices))
-	copy(prices, m.prices[1:])
-	prices[len(prices)-1] = kline.C
 
 	// 计算新的 MA
 	var price = math.AverageDecimals(prices...)
@@ -60,5 +66,6 @@ func (m *MA) NextKline(kline *kline.Kline) *MA {
 		prices:    prices,
 		Price:     price,
 		Timestamp: kline.E,
+		LastPrice: kline.C,
 	}
 }

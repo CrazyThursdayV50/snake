@@ -19,6 +19,7 @@ type RSI struct {
 	avgLoss   decimal.Decimal   // 平均下跌
 	Value     decimal.Decimal   // RSI值，范围0-100
 	Timestamp int64
+	LastPrice decimal.Decimal   // 最新价格
 }
 
 // New 创建新的RSI指标实例，使用默认14天周期
@@ -87,6 +88,7 @@ func NewWithPeriod(period int, klines ...*kline.Kline) *RSI {
 
 	var count = len(klines)
 	var ts = klines[count-1].E
+	var lastPrice = klines[count-1].C
 
 	return &RSI{
 		count:     count,
@@ -99,24 +101,27 @@ func NewWithPeriod(period int, klines ...*kline.Kline) *RSI {
 		avgLoss:   avgLoss,
 		Value:     rsiValue,
 		Timestamp: ts,
+		LastPrice: lastPrice,
 	}
 }
 
 // NextKline 计算下一个K线对应的RSI
-// 如果传入的K线不是当前RSI的下一个K线，返回nil
+// 如果传入的K线时间戳小于当前RSI的时间戳，返回nil
 func (r *RSI) NextKline(kline *kline.Kline) *RSI {
-	// 检查是否是下一个K线
-	if kline.S <= r.Timestamp {
-		return nil
-	}
-
-	// 检查时间间隔是否连续
-	if kline.S != r.Timestamp+1 {
+	// 检查是否是新的K线或更新数据
+	if kline.S < r.Timestamp {
 		return nil
 	}
 
 	// 计算价格变化
-	lastPrice := r.prices[len(r.prices)-1]
+	var lastPrice decimal.Decimal
+	if kline.S == r.Timestamp {
+		// 更新最后一条K线
+		lastPrice = r.prices[len(r.prices)-2]
+	} else {
+		// 新增K线
+		lastPrice = r.prices[len(r.prices)-1]
+	}
 	change := kline.C.Sub(lastPrice)
 
 	// 计算当前的上涨和下跌
@@ -157,23 +162,55 @@ func (r *RSI) NextKline(kline *kline.Kline) *RSI {
 	}
 
 	// 更新价格数组
-	newPrices := make([]decimal.Decimal, len(r.prices)+1)
-	copy(newPrices, r.prices)
-	newPrices[len(newPrices)-1] = kline.C
+	var newPrices []decimal.Decimal
+	if kline.S == r.Timestamp {
+		// 更新最后一条K线
+		newPrices = make([]decimal.Decimal, len(r.prices))
+		copy(newPrices, r.prices)
+		newPrices[len(newPrices)-1] = kline.C
+	} else {
+		// 新增K线
+		newPrices = make([]decimal.Decimal, len(r.prices)+1)
+		copy(newPrices, r.prices)
+		newPrices[len(newPrices)-1] = kline.C
+	}
 
 	// 更新变化数组
-	newChanges := make([]decimal.Decimal, len(r.changes)+1)
-	copy(newChanges, r.changes)
-	newChanges[len(newChanges)-1] = change
+	var newChanges []decimal.Decimal
+	if kline.S == r.Timestamp {
+		// 更新最后一条K线的变化
+		newChanges = make([]decimal.Decimal, len(r.changes))
+		copy(newChanges, r.changes)
+		newChanges[len(newChanges)-1] = change
+	} else {
+		// 新增变化
+		newChanges = make([]decimal.Decimal, len(r.changes)+1)
+		copy(newChanges, r.changes)
+		newChanges[len(newChanges)-1] = change
+	}
 
 	// 更新上涨和下跌数组
-	newGains := make([]decimal.Decimal, len(r.gains)+1)
-	copy(newGains, r.gains)
-	newGains[len(newGains)-1] = currentGain
+	var newGains []decimal.Decimal
+	var newLosses []decimal.Decimal
+	if kline.S == r.Timestamp {
+		// 更新最后一条K线的上涨和下跌
+		newGains = make([]decimal.Decimal, len(r.gains))
+		copy(newGains, r.gains)
+		newGains[len(newGains)-1] = currentGain
 
-	newLosses := make([]decimal.Decimal, len(r.losses)+1)
-	copy(newLosses, r.losses)
-	newLosses[len(newLosses)-1] = currentLoss
+		newLosses = make([]decimal.Decimal, len(r.losses))
+		copy(newLosses, r.losses)
+		newLosses[len(newLosses)-1] = currentLoss
+	} else {
+		// 新增上涨和下跌
+		newGains = make([]decimal.Decimal, len(r.gains)+1)
+		copy(newGains, r.gains)
+		newGains[len(newGains)-1] = currentGain
+
+		newLosses = make([]decimal.Decimal, len(r.losses)+1)
+		copy(newLosses, r.losses)
+		newLosses[len(newLosses)-1] = currentLoss
+	}
 
 	return &RSI{
 		count:     r.count + 1,
@@ -186,6 +223,7 @@ func (r *RSI) NextKline(kline *kline.Kline) *RSI {
 		avgLoss:   newAvgLoss,
 		Value:     rsiValue,
 		Timestamp: kline.E,
+		LastPrice: kline.C,
 	}
 }
 

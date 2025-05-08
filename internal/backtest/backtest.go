@@ -140,7 +140,7 @@ func (b *Backtest) Run(ctx context.Context) (Result, error) {
 		}
 
 		// 计算盈亏
-		profitAbsolute, profitPercentage := b.strategy.Profit(k.C)
+		profitAbsolute, profitPercentage := b.strategy.Profit()
 		positionKline.ProfitAbsolute = profitAbsolute
 		positionKline.ProfitPercentage = profitPercentage
 

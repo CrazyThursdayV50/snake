@@ -1,6 +1,7 @@
 package rsi_strategy
 
 import (
+	"context"
 	"math"
 	"snake/internal/kline"
 	"testing"
@@ -15,7 +16,7 @@ func TestRSIStrategy(t *testing.T) {
 
 	// 创建辅助函数，用于初始化策略并填充历史数据
 	initStrategy := func(positionAmount, balanceAmount decimal.Decimal) *RSIStrategy {
-		strategy := New()
+		strategy := New(context.WithCancel(context.TODO()))
 
 		if err := strategy.Init(positionAmount, balanceAmount); err != nil {
 			t.Fatalf("failed to init strategy: %v", err)

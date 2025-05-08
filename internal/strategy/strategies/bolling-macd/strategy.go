@@ -1,6 +1,7 @@
 package bollingmacd
 
 import (
+	"context"
 	bollingband "snake/internal/indicates/bolling-band"
 	"snake/internal/indicates/macd"
 	"snake/internal/kline"
@@ -26,9 +27,9 @@ type BollingMACDStrategy struct {
 }
 
 // New 创建布林带-MACD联合策略
-func New() *BollingMACDStrategy {
+func New(ctx context.Context, cancel context.CancelFunc) *BollingMACDStrategy {
 	return &BollingMACDStrategy{
-		BaseStrategy:     strategy.NewBaseStrategy("Bolling-MACD Strategy"),
+		BaseStrategy:     strategy.NewBaseStrategy(ctx, cancel, "Bolling-MACD Strategy"),
 		historicalKlines: make([]*kline.Kline, 0, 60), // 预分配足够容量
 		bbPeriod:         20,
 		fastEMAPeriod:    12,
@@ -70,7 +71,7 @@ func (s *BollingMACDStrategy) Update(kline *kline.Kline) (*strategy.Signal, erro
 	}
 
 	// 计算当前盈亏
-	absolute, percentage := s.BaseStrategy.Profit(kline.C)
+	absolute, percentage := s.BaseStrategy.Profit()
 
 	// 如果当前有持仓，打印盈亏信息
 	if !s.Position().Amount.IsZero() {
@@ -86,9 +87,9 @@ func (s *BollingMACDStrategy) Update(kline *kline.Kline) (*strategy.Signal, erro
 func (s *BollingMACDStrategy) getSignal(kline *kline.Kline) *strategy.Signal {
 	// 默认交易量为当前仓位的5%
 	tradeAmount := s.Position().Amount.Mul(decimal.NewFromFloat(0.05))
-	// 如果仓位为0，则使用余额的5%除以当前价格
+	// 如果仓位为0，则使用余额的5%
 	if s.Position().Amount.IsZero() {
-		tradeAmount = s.Balance().Amount.Mul(decimal.NewFromFloat(0.05)).Div(kline.C)
+		tradeAmount = s.Balance().Amount.Mul(decimal.NewFromFloat(0.05))
 	}
 
 	// 买入条件：
@@ -119,7 +120,7 @@ func (s *BollingMACDStrategy) getSignal(kline *kline.Kline) *strategy.Signal {
 	return s.Hold()
 }
 
-// Profit 计算盈亏
-func (s *BollingMACDStrategy) Profit(currentPrice decimal.Decimal) (absolute, percentage decimal.Decimal) {
-	return s.BaseStrategy.Profit(currentPrice)
+// Profit 返回当前盈亏
+func (s *BollingMACDStrategy) Profit() (absolute, percentage decimal.Decimal) {
+	return s.BaseStrategy.Profit()
 }

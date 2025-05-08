@@ -8,3 +8,4 @@ config.yml
 snake-data.dev.yml
 snake-data.local.yml
 snake-app.local.yml
+snake-app.dev.yml
