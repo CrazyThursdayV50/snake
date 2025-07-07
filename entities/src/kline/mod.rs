@@ -1,0 +1,21 @@
+mod proc;
+
+use crate::create_kline_model;
+create_kline_model!(min1, "kline_min1", KlineMin1);
+create_kline_model!(min3, "kline_min3", KlineMin3);
+create_kline_model!(min5, "kline_min5", KlineMin5);
+create_kline_model!(min10, "kline_min10", KlineMin10);
+create_kline_model!(min15, "kline_min15", KlineMin15);
+create_kline_model!(min30, "kline_min30", KlineMin30);
+create_kline_model!(hour1, "kline_hour1", KlineHour1);
+create_kline_model!(hour2, "kline_hour2", KlineHour2);
+create_kline_model!(hour3, "kline_hour3", KlineHour3);
+create_kline_model!(hour4, "kline_hour4", KlineHour4);
+create_kline_model!(hour6, "kline_hour6", KlineHour6);
+create_kline_model!(hour8, "kline_hour8", KlineHour8);
+create_kline_model!(hour12, "kline_hour12", KlineHour12);
+create_kline_model!(day1, "kline_day1", KlineDay1);
+create_kline_model!(day3, "kline_day3", KlineDay3);
+create_kline_model!(day5, "kline_day5", KlineDay5);
+create_kline_model!(week1, "kline_week1", KlineWeek1);
+create_kline_model!(month1, "kline_month1", KlineMonth1);
