@@ -1,3 +1,5 @@
 pub mod config;
-pub mod orm;
-pub mod prelude;
+pub mod diesel;
+pub mod sea_orm;
+
+pub use config::Config as OrmConfig;

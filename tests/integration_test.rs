@@ -5,7 +5,7 @@ use sea_query::TableRenameStatement;
 use snake::models::kline::{get_kline_table_name, KlineType};
 use snake::pkg::log::logger::init_logger;
 use snake::pkg::log::prelude::*;
-use snake::pkg::orm::prelude::*;
+use snake::pkg::sea_orm::prelude::*;
 use snake::storage::mysql::kline;
 use tokio;
 

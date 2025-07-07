@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use log;
 use sea_orm::{ConnectionTrait, DbConn, DbErr, Statement};
 use sea_query::{ColumnDef, IndexCreateStatement, MysqlQueryBuilder, Table};
@@ -21,9 +23,9 @@ async fn table_exists(db: &DbConn, table_name: &str) -> Result<bool, DbErr> {
 /// 创建K线表
 ///
 /// 这是API模块唯一对外公开的函数，用于创建K线表
-pub async fn create_kline_table(db: &DbConn, table_name: &str) -> Result<(), DbErr> {
+pub async fn create_kline_table(db: Arc<DbConn>, table_name: &str) -> Result<(), DbErr> {
     // 先检查表是否已经存在
-    if table_exists(db, &table_name).await? {
+    if table_exists(db.as_ref(), &table_name).await? {
         log::info!("表 {} 已存在，跳过创建", table_name);
         return Ok(());
     }
@@ -35,6 +37,11 @@ pub async fn create_kline_table(db: &DbConn, table_name: &str) -> Result<(), DbE
         .if_not_exists();
 
     // 添加列
+    table.col(
+        ColumnDef::new(sea_query::Alias::new("symbol"))
+            .string_len(16)
+            .not_null(),
+    );
     table.col(
         ColumnDef::new(sea_query::Alias::new("open_ts"))
             .big_unsigned()
@@ -80,6 +87,21 @@ pub async fn create_kline_table(db: &DbConn, table_name: &str) -> Result<(), DbE
         ColumnDef::new(sea_query::Alias::new("amount"))
             .string_len(40)
             .not_null(),
+    );
+    table.col(
+        ColumnDef::new(sea_query::Alias::new("trade_count"))
+            .big_unsigned()
+            .null(),
+    );
+    table.col(
+        ColumnDef::new(sea_query::Alias::new("taker_buy_volume"))
+            .string_len(40)
+            .null(),
+    );
+    table.col(
+        ColumnDef::new(sea_query::Alias::new("taker_buy_amount"))
+            .string_len(40)
+            .null(),
     );
     table.col(
         ColumnDef::new(sea_query::Alias::new("created_at"))
