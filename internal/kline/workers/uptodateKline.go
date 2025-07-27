@@ -10,11 +10,11 @@ import (
 	"snake/internal/kline/utils"
 	"snake/pkg/binance"
 
+	"github.com/CrazyThursdayV50/goex/binance/websocket-api/models/klines"
 	"github.com/CrazyThursdayV50/pkgo/builtin/collector"
 	"github.com/CrazyThursdayV50/pkgo/builtin/slice"
 	"github.com/CrazyThursdayV50/pkgo/log"
 	"github.com/CrazyThursdayV50/pkgo/worker"
-	binance_connector "github.com/binance/binance-connector-go"
 )
 
 const updateKlinesCount = 1000
@@ -44,13 +44,19 @@ func updateKlineFromStartTime(
 			return
 		}
 
-		resp, err := client.Restful.NewKlinesService().StartTime(nextStart).EndTime(endTime).Interval(interval.String()).Symbol(symbol).Limit(updateKlinesCount).Do(ctx)
+		resp, err := client.Restful.Klines().
+			StartTime(nextStart).
+			EndTime(endTime).
+			Interval(interval.String()).
+			Symbol(symbol).
+			Limit(updateKlinesCount).
+			Do(ctx)
 		if err != nil {
 			logger.Errorf("Failed to fetch klines: %v", err)
 			return
 		}
 
-		klines := collector.Slice(resp, func(k int, v *binance_connector.KlinesResponse) (bool, *models.Kline) {
+		klines := collector.Slice(resp.Unwrap(), func(k int, v klines.Kline) (bool, *models.Kline) {
 			return true, acl.ApiToDB(v)
 		})
 
@@ -81,7 +87,7 @@ func updateKlineToStartTime(
 			return
 		}
 
-		resp, err := client.Restful.NewKlinesService().
+		resp, err := client.Restful.Klines().
 			StartTime(nextStartTime).
 			EndTime(endTime).
 			Interval(interval.String()).
@@ -93,17 +99,18 @@ func updateKlineToStartTime(
 			return
 		}
 
-		if len(resp) == 0 {
+		klinesData := resp.Unwrap()
+		if len(klinesData) == 0 {
 			return
 		}
 
-		slice.From(resp...).Iter(func(k int, v *binance_connector.KlinesResponse) (bool, error) {
+		slice.From(klinesData...).Iter(func(k int, v klines.Kline) (bool, error) {
 			model := acl.ApiToDB(v)
 			trigger(model)
 			return true, nil
 		})
 
-		startTime = resp[0].OpenTime
+		startTime = uint64(klinesData[0].OpenTs)
 	}
 }
 

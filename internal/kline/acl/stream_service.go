@@ -4,7 +4,7 @@ import (
 	"snake/internal/kline"
 	"snake/internal/kline/storage/mysql/models"
 
-	binance_connector "github.com/binance/binance-connector-go"
+	"github.com/CrazyThursdayV50/goex/binance/websocket-streams/models/klines"
 	"github.com/shopspring/decimal"
 )
 
@@ -55,22 +55,22 @@ func DB2Service(_ int, src *models.Kline) (bool, *kline.Kline) {
 	return true, &dst
 }
 
-func Ws2Service(_ int, src *binance_connector.WsKlineEvent) (bool, *kline.Kline) {
-	volume, _ := decimal.NewFromString(src.Kline.Volume)
-	amount, _ := decimal.NewFromString(src.Kline.QuoteVolume)
-	close, _ := decimal.NewFromString(src.Kline.Close)
-	high, _ := decimal.NewFromString(src.Kline.High)
-	low, _ := decimal.NewFromString(src.Kline.Low)
-	open, _ := decimal.NewFromString(src.Kline.Open)
+func Ws2Service(_ int, src *klines.Data) (bool, *kline.Kline) {
+	volume, _ := decimal.NewFromString(src.Volume)
+	amount, _ := decimal.NewFromString(src.Amount)
+	close, _ := decimal.NewFromString(src.Close)
+	high, _ := decimal.NewFromString(src.High)
+	low, _ := decimal.NewFromString(src.Low)
+	open, _ := decimal.NewFromString(src.Open)
 
 	var m kline.Kline
 	m.V = volume
 	m.A = amount
 	m.C = close
-	m.E = src.Kline.EndTime
+	m.E = src.CloseTime
 	m.H = high
 	m.L = low
 	m.O = open
-	m.S = src.Kline.StartTime
+	m.S = src.OpenTime
 	return true, &m
 }

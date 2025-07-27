@@ -11,12 +11,12 @@ import (
 	"snake/pkg/binance"
 	"sort"
 
+	"github.com/CrazyThursdayV50/goex/binance/websocket-api/models/klines"
 	"github.com/CrazyThursdayV50/pkgo/builtin/collector"
 	gmap "github.com/CrazyThursdayV50/pkgo/builtin/map"
 	"github.com/CrazyThursdayV50/pkgo/builtin/slice"
 	"github.com/CrazyThursdayV50/pkgo/log"
 	"github.com/CrazyThursdayV50/pkgo/worker"
-	binance_connector "github.com/binance/binance-connector-go"
 )
 
 func gatherOpenTs(openTs []uint64, interval interval.Interval) map[uint64]int {
@@ -53,7 +53,15 @@ func gatherOpenTs(openTs []uint64, interval interval.Interval) map[uint64]int {
 	return paramsMap
 }
 
-func Checker(ctx context.Context, logger log.Logger, symbol string, interval interval.Interval, repoKline kline.Repository, marketClient *binance.MarketClient, storeTrigger func(*models.Kline)) func(uint64) {
+func Checker(
+	ctx context.Context,
+	logger log.Logger,
+	symbol string,
+	interval interval.Interval,
+	repoKline kline.Repository,
+	marketClient *binance.MarketClient,
+	storeTrigger func(*models.Kline),
+) func(uint64) {
 	worker, trigger := worker.New(fmt.Sprintf("KlineChecks-%s", interval.String()), func(stopTime uint64) {
 		logger.Infof("check to %d", stopTime)
 		tryFunc(func() error {
@@ -85,7 +93,7 @@ func Checker(ctx context.Context, logger log.Logger, symbol string, interval int
 				params := gatherOpenTs(missingTs, interval)
 				_, err = gmap.From(params).Iter(func(k uint64, v int) (bool, error) {
 					endTime := utils.GetEndTimeByStartTime(k, interval, int64(v))
-					resp, err := marketClient.Restful.NewKlinesService().
+					resp, err := marketClient.Restful.Klines().
 						Symbol(symbol).
 						StartTime(k).
 						EndTime(endTime).
@@ -95,7 +103,8 @@ func Checker(ctx context.Context, logger log.Logger, symbol string, interval int
 						return false, err
 					}
 
-					slice.From(resp...).Iter(func(k int, v *binance_connector.KlinesResponse) (bool, error) {
+					klinesData := resp.Unwrap()
+					slice.From(klinesData...).Iter(func(k int, v klines.Kline) (bool, error) {
 						model := acl.ApiToDB(v)
 						storeTrigger(model)
 						return true, nil
