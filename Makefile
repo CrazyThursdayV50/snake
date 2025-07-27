@@ -14,11 +14,11 @@ install:
 
 DOCKERFILE=${APP_DATA_DIR}/Dockerfile
 docker-build-data:
-	./scripts/docker/shell/local.sh ${APP_DATA} ${DOCKERFILE}
+	./scripts/shell/podman/build.sh ${APP_DATA} ${DOCKERFILE}
 COMPOSE_FILE=${APP_DATA_DIR}/compose.yml
 ENV_FILE=${APP_DATA_DIR}/.env
 docker-run-data:
-	./scripts/docker/shell/compose/start.sh ${APP_DATA} ${COMPOSE_FILE} ${ENV_FILE} ${APP_DATA}
+	./scripts/shell/podman/compose/up.sh ${APP_DATA} ${COMPOSE_FILE} ${ENV_FILE}
 
 DOCKERFILE_APP=${APP_DIR}/Dockerfile
 docker-build-app:

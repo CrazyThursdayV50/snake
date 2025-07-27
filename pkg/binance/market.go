@@ -2,23 +2,24 @@ package binance
 
 import (
 	"context"
-	"net/http"
-	"time"
 
-	binance_connector "github.com/binance/binance-connector-go"
+	"github.com/CrazyThursdayV50/goex/binance"
+	"github.com/CrazyThursdayV50/goex/binance/websocket-api/api"
+	"github.com/CrazyThursdayV50/pkgo/log"
 )
 
 type MarketClient struct {
-	Restful *binance_connector.Client
-	Stream  *binance_connector.WebsocketStreamClient
+	Restful *api.API
+	Stream  *binance.WebSocketStreams
 }
 
-func New(cfg *Config) *MarketClient {
-	stream := binance_connector.NewWebsocketStreamClient(false)
-	restful := binance_connector.NewClient(cfg.APIKey, cfg.SecretKey)
-	restful.Debug = true
-	restful.HTTPClient.Timeout = time.Second * 60
-	restful.HTTPClient.Transport = &http.Transport{Proxy: http.ProxyFromEnvironment}
-	restful.NewPingService().Do(context.Background())
+func New(ctx context.Context, logger log.Logger, cfg *Config) *MarketClient {
+	restful := binance.NewWebSocketAPI(ctx, logger, cfg.APIKey, cfg.SecretKey)
+	_, err := restful.Ping(ctx)
+	if err != nil {
+		panic(err)
+	}
+
+	stream := binance.NewWebSocketStreams()
 	return &MarketClient{Restful: restful, Stream: stream}
 }

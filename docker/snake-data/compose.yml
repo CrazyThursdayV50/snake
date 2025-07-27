@@ -7,11 +7,11 @@ services:
   snake-data:
     container_name: ${APP}
     image: ${APP}:local
-    env_file: ${CONTAINER_ENV_FILE}
+    env_file: ${ENV_FILE}
     ports:
       - 33557:33557
     volumes:
-      - /Users/alex/projects/alex/snake:/app/config
+      - ${SNAKE_CONFIG_PATH}:/app/config
     networks:
       default:
         aliases:

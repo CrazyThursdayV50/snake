@@ -10,10 +10,11 @@ import (
 	"snake/internal/kline/storage/mysql/migrate"
 	"snake/internal/kline/storage/mysql/models"
 	"snake/internal/kline/workers"
+
 	"snake/pkg/binance"
 	"sync"
 
-	"github.com/CrazyThursdayV50/pkgo/goo"
+	"github.com/CrazyThursdayV50/goex/binance/websocket-streams/models/klines"
 	"github.com/CrazyThursdayV50/pkgo/json"
 	"github.com/CrazyThursdayV50/pkgo/log"
 	defaultlogger "github.com/CrazyThursdayV50/pkgo/log/default"
@@ -21,7 +22,6 @@ import (
 	"github.com/CrazyThursdayV50/pkgo/trace"
 	jaeger "github.com/CrazyThursdayV50/pkgo/trace/jaeger"
 	"github.com/CrazyThursdayV50/pkgo/websocket/server"
-	binance_connector "github.com/binance/binance-connector-go"
 	"github.com/gorilla/websocket"
 	jsoniter "github.com/json-iterator/go"
 )
@@ -60,16 +60,18 @@ func New(cfg *Config) *Server {
 	return &Server{cfg: cfg, clients: &Clients{}, repos: &Repositories{}, Workers: &Workers{}, Handlers: &Handlers{}, Services: &Services{}}
 }
 
-func (s *Server) initClients() {
+func (s *Server) initClients(ctx context.Context) {
 	json.Init(&jsoniter.Config{
 		EscapeHTML:    true,
-		UseNumber:     true,
+		UseNumber:     false,
 		SortMapKeys:   true,
 		CaseSensitive: true,
 	})
 
 	logger := defaultlogger.New(s.cfg.Log)
 	logger.Init()
+
+	logger.Infof("config: %+#v", s.cfg.Binance)
 
 	jaegerCfg := jaeger.DefaultConfig()
 	tracer, err := jaeger.New(context.Background(), jaegerCfg, logger)
@@ -80,7 +82,7 @@ func (s *Server) initClients() {
 	s.tracer = tracer
 	s.logger = logger
 	s.clients.db = gorm.NewDB(logger, tracer.NewTracer("mysql"), s.cfg.Mysql)
-	s.clients.binanceMarket = binance.New(s.cfg.Binance)
+	s.clients.binanceMarket = binance.New(ctx, s.logger, s.cfg.Binance)
 }
 
 func (s *Server) initWorkers(ctx context.Context) {
@@ -129,55 +131,26 @@ func (s *Server) initWorkers(ctx context.Context) {
 }
 
 func (s *Server) Run() {
-	s.initClients()
+	ctx, cancel := context.WithCancel(context.Background())
+	s.initClients(ctx)
 	s.initRepositories()
 	s.initServices()
-
-	ctx, cancel := context.WithCancel(context.Background())
 	migrate.AutoMigrate(ctx, s.clients.db)
 
 	s.initWorkers(ctx)
 
 	handler := handler.NewWsKline(s.min1Uptodater, s.mint1Storer)
 
-	var done = new(chan struct{})
-	var stop = new(chan struct{})
-	var err error
-	var startKline = func() {
-		*done, *stop, err = s.clients.binanceMarket.Stream.WsKlineServe(s.cfg.Binance.Symbol, interval.Min1().String(), func(event *binance_connector.WsKlineEvent) {
-			s.logger.Infof("kline event: %+#v", event)
-			handler.Handle(event)
-			_, kline := acl.Ws2Service(0, event)
-			data, _ := kline.MarshalBinary()
-			s.Wsserver.Broadcast(ctx, websocket.TextMessage, data)
-		}, func(err error) {
-			s.logger.Error("get kline error: %v", err)
-		})
-	}
-
-	startKline()
-	if err != nil {
-		s.logger.Errorf("connect binance failed")
-		panic(err)
-	}
-
-	goo.Go(func() {
-		for {
-			select {
-			case <-*done:
-				startKline()
-
-			case <-ctx.Done():
-				return
-			}
-		}
-
-	})
-
-	goo.Go(func() {
-		<-ctx.Done()
-		close(*stop)
-	})
+	_ = s.clients.binanceMarket.Stream.KlinesStream(s.logger, func(event *klines.Data) {
+		s.logger.Infof("kline event: %+#v", event)
+		handler.Handle(event)
+		_, kline := acl.Ws2Service(0, event)
+		data, _ := kline.MarshalBinary()
+		s.Wsserver.Broadcast(ctx, websocket.TextMessage, data)
+	}).
+		Symbol(s.cfg.Binance.Symbol).
+		Interval(interval.Min1().String()).
+		Connect(ctx)
 
 	var wg sync.WaitGroup
 	s.Services.Run(ctx, s.cfg.Service, &wg)

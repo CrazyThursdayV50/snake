@@ -22,6 +22,7 @@ func main() {
 		panic(err)
 	}
 
+	cfg.Binance.UpdateKeys()
 	server := kline.New(cfg)
 	server.Run()
 }
