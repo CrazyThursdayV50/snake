@@ -79,6 +79,8 @@ type BaseStrategy struct {
 		absolute   decimal.Decimal
 		percentage decimal.Decimal
 	}
+
+	signalFunc func(balance *Balance, position *Position, kline *kline.Kline) *Signal
 }
 
 func (s *BaseStrategy) Stop() { s.cancel() }
@@ -97,6 +99,10 @@ func NewBaseStrategy(ctx context.Context, cancel context.CancelFunc, name string
 // Name 返回策略名称
 func (s *BaseStrategy) Name() string {
 	return s.name
+}
+
+func (s *BaseStrategy) WithSignalFunc(signalFunc func(balance *Balance, position *Position, kline *kline.Kline) *Signal) {
+	s.signalFunc = signalFunc
 }
 
 // Init 初始化策略
@@ -210,6 +216,7 @@ func (s *BaseStrategy) Hold() *Signal {
 // Update 更新策略状态
 func (s *BaseStrategy) Update(kline *kline.Kline) (*Signal, error) {
 	// 更新盈亏
+	signal := s.signalFunc(s.balance, s.position, kline)
 	s.updateProfit(kline.C)
 	return s.Hold(), nil
 }

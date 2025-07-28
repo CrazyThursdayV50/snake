@@ -34,7 +34,6 @@ func (r *Repository) ListKlines(ctx context.Context, interval interval.Interval,
 	}
 
 	list := slice.From(result.Data.List...)
-
 	var ch = make(chan *k.Kline, list.Len())
 	goo.Go(func() {
 		defer close(ch)
