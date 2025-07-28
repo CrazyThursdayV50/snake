@@ -27,7 +27,7 @@ type MACrossStrategy struct {
 // New 创建 MA 交叉策略
 func New(ctx context.Context, cancel context.CancelFunc) *MACrossStrategy {
 	return &MACrossStrategy{
-		BaseStrategy:     strategy.NewBaseStrategy(ctx,cancel, "MA Cross Strategy"),
+		BaseStrategy:     strategy.NewBaseStrategy(ctx, cancel, "MA Cross Strategy"),
 		historicalKlines: make([]*kline.Kline, 0, 60), // 预分配足够容量
 		ma20Period:       20,
 		ma60Period:       60,
@@ -52,11 +52,11 @@ func (s *MACrossStrategy) Update(kline *kline.Kline) (*strategy.Signal, error) {
 	// 计算MA20
 	if len(s.historicalKlines) >= s.ma20Period {
 		ma20Klines := s.historicalKlines[len(s.historicalKlines)-s.ma20Period:]
-		s.ma20 = ma.New(ma20Klines...)
+		s.ma20 = ma.New(len(ma20Klines)).Klines(ma20Klines).Build()
 	}
 
 	// 计算MA60
-	s.ma60 = ma.New(s.historicalKlines...)
+	s.ma60 = ma.New(len(s.historicalKlines)).Klines(s.historicalKlines).Build()
 
 	// 如果无法计算MA，则持有
 	if s.ma20 == nil || s.ma60 == nil {
@@ -80,8 +80,8 @@ func (s *MACrossStrategy) Update(kline *kline.Kline) (*strategy.Signal, error) {
 
 	// 获取浮点数值用于比较
 	currentPrice := kline.C.InexactFloat64()
-	ma20Value := s.ma20.Price.InexactFloat64()
-	ma60Value := s.ma60.Price.InexactFloat64()
+	ma20Value := s.ma20.Value.InexactFloat64()
+	ma60Value := s.ma60.Value.InexactFloat64()
 
 	// 如果价格接近两个MA之间的中间值，返回持有信号
 	if ma20Value > ma60Value {
@@ -99,7 +99,7 @@ func (s *MACrossStrategy) Update(kline *kline.Kline) (*strategy.Signal, error) {
 	}
 
 	// 价格大于MA20时卖出
-	if kline.C.GreaterThan(s.ma20.Price) {
+	if kline.C.GreaterThan(s.ma20.Value) {
 		signal := s.Sell(tradeAmount, kline.C)
 		if signal != nil {
 			return signal, nil
@@ -108,7 +108,7 @@ func (s *MACrossStrategy) Update(kline *kline.Kline) (*strategy.Signal, error) {
 	}
 
 	// 价格小于MA60时买入
-	if kline.C.LessThan(s.ma60.Price) {
+	if kline.C.LessThan(s.ma60.Value) {
 		signal := s.Buy(tradeAmount, kline.C)
 		if signal != nil {
 			return signal, nil

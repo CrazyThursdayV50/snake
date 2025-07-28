@@ -46,7 +46,7 @@ func (s *Service) BackTest(ctx *gin.Context) {
 		return
 	}
 
-	interval, err := interval.Parse(params.Interval)
+	interval, err := interval.ParseString(params.Interval)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, failResponse[TestData](err.Error(), "invalid params"))
 		return

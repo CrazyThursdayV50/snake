@@ -43,7 +43,7 @@ func TestMACrossStrategy(t *testing.T) {
 		strategy := initStrategy(positionAmount, balanceAmount)
 
 		// 获取当前的MA20值，设置当前价格高于MA20
-		ma20Value := strategy.ma20.Price.InexactFloat64()
+		ma20Value := strategy.ma20.Value.InexactFloat64()
 		currentPrice := ma20Value + 1.0 // 确保价格高于MA20
 
 		currentKline := &kline.Kline{
@@ -107,7 +107,7 @@ func TestMACrossStrategy(t *testing.T) {
 		strategy := initStrategy(positionAmount, balanceAmount)
 
 		// 获取当前的MA60值，设置当前价格低于MA60
-		ma60Value := strategy.ma60.Price.InexactFloat64()
+		ma60Value := strategy.ma60.Value.InexactFloat64()
 		currentPrice := ma60Value - 1.0 // 确保价格低于MA60
 
 		currentKline := &kline.Kline{
@@ -171,8 +171,8 @@ func TestMACrossStrategy(t *testing.T) {
 		strategy := initStrategy(positionAmount, balanceAmount)
 
 		// 获取当前的MA20和MA60值，设置当前价格在两者之间
-		ma20Value := strategy.ma20.Price.InexactFloat64()
-		ma60Value := strategy.ma60.Price.InexactFloat64()
+		ma20Value := strategy.ma20.Value.InexactFloat64()
+		ma60Value := strategy.ma60.Value.InexactFloat64()
 
 		// 如果MA20小于MA60，则交换它们的值
 		if ma20Value < ma60Value {
