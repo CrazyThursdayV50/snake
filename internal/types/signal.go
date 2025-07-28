@@ -25,4 +25,4 @@ func (s SignalType) IsSell() bool {
 // IsHold 判断是否为持有信号
 func (s SignalType) IsHold() bool {
 	return s == SignalTypeHold
-} 
+}

@@ -105,8 +105,11 @@ func TestBacktest(t *testing.T) {
 		Interval:        interval.Interval1m,
 	}
 
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	// 创建策略
-	strategy := ma_cross.New()
+	strategy := ma_cross.New(ctx, cancel)
 
 	// 创建回测器
 	backtest := New(config, &mockKlineRepository{klines: klines}, strategy)

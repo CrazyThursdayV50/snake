@@ -8,7 +8,7 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-func DB2Service(_ int, src *models.Kline) (bool, *kline.Kline) {
+func DB2Service(src *models.Kline) (bool, *kline.Kline) {
 	if src == nil {
 		return false, nil
 	}

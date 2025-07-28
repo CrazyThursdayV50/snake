@@ -35,6 +35,7 @@ func (s *Services) Run(ctx context.Context, cfg *service.Config, wg *sync.WaitGr
 	handler := gin.Default()
 	root := handler.Group("/")
 	root.GET("strategy/list", s.strategy.ListStrategies)
+	root.POST("strategy/backtest", s.strategy.BackTest)
 	root.POST("strategy/test", s.strategy.Test)
 	root.DELETE("strategy", s.strategy.StopStrategy)
 

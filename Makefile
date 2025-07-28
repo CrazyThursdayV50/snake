@@ -19,6 +19,9 @@ COMPOSE_FILE=${APP_DATA_DIR}/compose.yml
 ENV_FILE=${APP_DATA_DIR}/.env
 docker-run-data:
 	./scripts/shell/podman/compose/up.sh ${APP_DATA} ${COMPOSE_FILE} ${ENV_FILE}
+docker-deploy-data:
+	@podman buildx build --platform linux/amd64 -f ${DOCKERFILE} -t ${APP_DATA}:local .
+	./scripts/shell/podman/deploy.sh ${APP_DATA} achillesss/snake-data
 
 DOCKERFILE_APP=${APP_DIR}/Dockerfile
 docker-build-app:

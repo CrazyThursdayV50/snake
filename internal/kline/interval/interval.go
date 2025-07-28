@@ -26,21 +26,21 @@ const (
 )
 
 var dbNameMap = map[Interval]string{
-	Interval1m:  "1min",
-	Interval3m:  "3min",
-	Interval5m:  "5min",
-	Interval15m: "15min",
-	Interval30m: "30min",
-	Interval1h:  "1hour",
-	Interval2h:  "2hour",
-	Interval4h:  "4hour",
-	Interval6h:  "6hour",
-	Interval8h:  "8hour",
-	Interval12h: "12hour",
-	Interval1d:  "1day",
-	Interval3d:  "3day",
-	Interval1w:  "1week",
-	Interval1M:  "1month",
+	Interval1m:  "min_1",
+	Interval3m:  "min_3",
+	Interval5m:  "min_5",
+	Interval15m: "min_15",
+	Interval30m: "min_30",
+	Interval1h:  "hour_1",
+	Interval2h:  "hour_2",
+	Interval4h:  "hour_4",
+	Interval6h:  "hour_6",
+	Interval8h:  "hour_8",
+	Interval12h: "hour_12",
+	Interval1d:  "day_1",
+	Interval3d:  "day_3",
+	Interval1w:  "week_1",
+	Interval1M:  "month_1",
 }
 
 func Min1() Interval   { return Interval1m }
@@ -120,12 +120,22 @@ func (i Interval) Duration() time.Duration {
 func (i Interval) String() string { return string(i) }
 func (i Interval) DB() string     { return dbNameMap[i] }
 
-// Parse 将字符串解析为 Interval 类型
-func Parse(s string) (Interval, error) {
+// ParseString 将字符串解析为 Interval 类型
+func ParseString(s string) (Interval, error) {
 	for _, i := range all {
 		if string(i) == s {
 			return i, nil
 		}
 	}
-	return Interval1m, errors.New("无效的时间间隔")
+	return Interval1m, errors.New("invalid interval string")
+}
+
+func ParseDuration(duration time.Duration) (Interval, error) {
+	for _, i := range all {
+		if duration == i.Duration() {
+			return i, nil
+		}
+	}
+	return Interval1m, errors.New("invalid duration")
+
 }

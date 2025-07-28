@@ -5,6 +5,7 @@ import (
 	"snake/internal/kline"
 	"snake/internal/kline/acl"
 	"snake/internal/kline/interval"
+	"snake/internal/kline/storage/mysql/models"
 
 	"github.com/CrazyThursdayV50/pkgo/builtin/collector"
 	"github.com/gin-gonic/gin"
@@ -30,13 +31,17 @@ func (s *Service) GetKlines(ctx *gin.Context) {
 		return
 	}
 
-	klines, err := s.repoKline.List(ctx, interval.Interval(params.Interval), params.From, params.To)
+	interval := interval.Interval(params.Interval)
+	klines, err := s.repoKline.List(ctx, interval, params.From, params.To)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, failResponse[GetKlineData](err.Error(), "list kline failed"))
 		return
 	}
 
-	klineList := collector.Slice(klines, acl.DB2Service)
+	klineList := collector.Slice(klines, func(_ int, v *models.Kline) (bool, *kline.Kline) {
+		return acl.DB2Service(v)
+	})
+
 	var data GetKlineData
 	data.List = klineList
 

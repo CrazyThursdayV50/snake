@@ -27,6 +27,22 @@ type Kline struct {
 	E int64
 }
 
+func (k *Kline) IsCurrent(kline *Kline) bool {
+	return k.S == kline.S && k.E == kline.E
+}
+
+// is k before kline
+func (k *Kline) IsBefore(kline *Kline) bool {
+	diffK := k.E - k.S
+	diffKline := kline.E - kline.S
+	return k.E+1 == kline.S && diffK == diffKline
+}
+
+// is k after kline
+func (s *Kline) IsAfter(kline *Kline) bool {
+	return kline.IsBefore(s)
+}
+
 func (k *Kline) MarshalBinary() ([]byte, error) {
 	if k == nil {
 		return nil, errors.New("invalid receiver")

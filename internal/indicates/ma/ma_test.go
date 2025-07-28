@@ -47,21 +47,21 @@ func TestNextKline(t *testing.T) {
 		}
 
 		// 创建 MA
-		ma := New(klines[0], klines[1])
+		ma := New(2).Klines([]*kline.Kline{klines[0], klines[1]}).Build()
 		if ma == nil {
 			t.Fatal("failed to create MA")
 		}
 
 		// 计算下一个 MA
-		nextMA := ma.NextKline(klines[2])
+		nextMA := ma.Next(klines[2])
 		if nextMA == nil {
 			t.Fatal("failed to calculate next MA")
 		}
 
 		// 验证结果
 		expectedPrice := decimal.NewFromFloat(104.0) // (103.0 + 105.0) / 2
-		if !nextMA.Price.Equal(expectedPrice) {
-			t.Errorf("expected MA price %v, got %v", expectedPrice, nextMA.Price)
+		if !nextMA.Value.Equal(expectedPrice) {
+			t.Errorf("expected MA price %v, got %v", expectedPrice, nextMA.Value)
 		}
 		if nextMA.Timestamp != klines[2].E {
 			t.Errorf("expected timestamp %d, got %d", klines[2].E, nextMA.Timestamp)
@@ -99,13 +99,13 @@ func TestNextKline(t *testing.T) {
 		}
 
 		// 创建 MA
-		ma := New(klines[0], klines[1])
+		ma := New(2).Klines([]*kline.Kline{klines[0], klines[1]}).Build()
 		if ma == nil {
 			t.Fatal("failed to create MA")
 		}
 
 		// 尝试计算下一个 MA（使用第一个 Kline，时间早于当前 MA）
-		nextMA := ma.NextKline(klines[0])
+		nextMA := ma.Next(klines[0])
 		if nextMA != nil {
 			t.Error("expected nil for earlier kline")
 		}
@@ -149,13 +149,13 @@ func TestNextKline(t *testing.T) {
 		}
 
 		// 创建 MA
-		ma := New(klines[0], klines[1])
+		ma := New(2).Klines([]*kline.Kline{klines[0], klines[1]}).Build()
 		if ma == nil {
 			t.Fatal("failed to create MA")
 		}
 
 		// 尝试计算下一个 MA（使用跳过时间间隔的 Kline）
-		nextMA := ma.NextKline(klines[2])
+		nextMA := ma.Next(klines[2])
 		if nextMA != nil {
 			t.Error("expected nil for non-continuous kline")
 		}

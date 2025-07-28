@@ -9,6 +9,10 @@ import (
 	"github.com/shopspring/decimal"
 )
 
+const (
+	STRATEGY_MA_CROSS = "ma_cross"
+)
+
 // Position 表示当前持仓
 type Position struct {
 	// 当前持仓数量（例如 BTC 数量）
@@ -162,7 +166,7 @@ func (s *BaseStrategy) Sell(amount, price decimal.Decimal) *Signal {
 	if s.position.Amount.LessThan(amount) {
 		return nil
 	}
-	
+
 	// 检查仓位是否足够
 	if s.position.Amount.IsZero() {
 		return &Signal{

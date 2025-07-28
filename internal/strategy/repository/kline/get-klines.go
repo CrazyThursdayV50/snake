@@ -37,13 +37,13 @@ func (r *Repository) GetKlines(ctx context.Context, interval interval.Interval, 
 			}
 		}),
 		client.WithLogger(r.logger),
-		client.WithMessageHandler(func(ctx context.Context, logger log.Logger, data []byte, f func(error)) []byte {
+		client.WithMessageHandler(func(ctx context.Context, logger log.Logger, _ int, data []byte, f func(error)) (int, []byte) {
 			logger.Infof("kline: %s", data)
 			var line Kline
 			err := line.UnmarshalBinary(data)
 			if err != nil {
 				f(err)
-				return nil
+				return client.BinaryMessage, nil
 			}
 
 			if !klineInited {
@@ -60,12 +60,12 @@ func (r *Repository) GetKlines(ctx context.Context, interval interval.Interval, 
 
 				if err != nil {
 					logger.Errorf("get klines failed: %v", err)
-					return nil
+					return client.BinaryMessage, nil
 				}
 
 				if result.Error != "" {
 					logger.Errorf("get klines failed: %v: %v", result.Message, result.Error)
-					return nil
+					return client.BinaryMessage, nil
 				}
 
 				slice.From(result.Data.List...).Iter(func(k int, v *k.Kline) (bool, error) {
@@ -77,7 +77,7 @@ func (r *Repository) GetKlines(ctx context.Context, interval interval.Interval, 
 			}
 
 			ch <- &line
-			return nil
+			return client.BinaryMessage, nil
 		}),
 	)
 
